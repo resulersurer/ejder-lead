@@ -334,12 +334,9 @@ export default function HomePage() {
 
       <div className="grid">
         <div className="card">
-          <h2>Veri Yükleme Sayfası</h2>
-          <p>Lead Excel dosyanızı ayrı sayfadan yükleyin. Yükleme işleminden sonra ana sayfaya dönerek verileri görüntüleyebilirsiniz.</p>
-          <a href="/upload" className="secondary" style={{ display: "inline-block", marginTop: 12 }}>
-            Veri Yükleme Sayfasına Git
-          </a>
-          <button type="button" className="secondary" style={{ marginTop: 12, marginLeft: 8 }} onClick={distributeLeadsEvenly}>
+          <h2>Veri Yönetimi</h2>
+          <p>Lead verilerinizi bu sayfada görüntüleyebilir, filtreleyebilir ve silebilirsiniz.</p>
+          <button type="button" className="secondary" style={{ marginTop: 12 }} onClick={distributeLeadsEvenly}>
             Leadleri 24 personele eşitle
           </button>
           <button
