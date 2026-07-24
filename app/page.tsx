@@ -289,8 +289,16 @@ export default function HomePage() {
         };
       });
 
-      setLeads(importedLeads);
-      setShowAllLeads(true);
+      const allSamePerson = importedLeads.every((lead) => lead.salesPerson === salesPeople[0].name);
+      const finalLeads = allSamePerson
+        ? importedLeads.map((lead, index) => ({
+            ...lead,
+            salesPerson: salesPeople[index % salesPeople.length].name,
+          }))
+        : importedLeads;
+
+      setLeads(finalLeads);
+      setShowAllLeads(false);
       setCurrentPerson(salesPeople[0]);
     } catch (error) {
       setUploadError("Excel dosyası yüklenemedi. Lütfen sütun başlıklarını kontrol edin.");
