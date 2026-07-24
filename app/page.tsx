@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import * as XLSX from "xlsx";
 
 type Lead = {
   id: string;
@@ -51,53 +50,7 @@ const salesPeople: SalesPerson[] = [
   { id: "p-24", name: "BAHAR KELEŞ" },
 ];
 
-const initialLeads: Lead[] = [
-  {
-    id: "lead-1",
-    name: "Mehmet Yılmaz",
-    company: "ABC Teknoloji",
-    phone: "+90 532 123 45 67",
-    status: "New",
-    salesPerson: "NAZLICAN TUĞAL",
-    notes: "",
-  },
-  {
-    id: "lead-2",
-    name: "Ayşe Demir",
-    company: "XYZ Yazılım",
-    phone: "+90 532 234 56 78",
-    status: "New",
-    salesPerson: "ÇAĞAN GENCER",
-    notes: "",
-  },
-  {
-    id: "lead-3",
-    name: "Fatma Kaya",
-    company: "Delta Enerji",
-    phone: "+90 532 345 67 89",
-    status: "New",
-    salesPerson: "NURGÜL KOÇ",
-    notes: "",
-  },
-  {
-    id: "lead-4",
-    name: "Ali Can",
-    company: "Omega İnşaat",
-    phone: "+90 532 456 78 90",
-    status: "New",
-    salesPerson: "YELİZ KABAKÇI",
-    notes: "",
-  },
-  {
-    id: "lead-5",
-    name: "Elif Yıldız",
-    company: "Nova Danışmanlık",
-    phone: "+90 532 567 89 01",
-    status: "New",
-    salesPerson: "ERDİNÇ KÖSEBİŞ",
-    notes: "",
-  },
-];
+const initialLeads: Lead[] = [];
 
 const normalizeStatus = (value: unknown): Lead["status"] => {
   const raw = String(value ?? "").trim();
@@ -164,24 +117,78 @@ export default function HomePage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [showAllLeads, setShowAllLeads] = useState(false);
   const [modalState, setModalState] = useState<EditModalState | null>(null);
-  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [syncError, setSyncError] = useState<string | null>(null);
 
   useEffect(() => {
-    const stored = typeof window !== "undefined" ? window.localStorage.getItem("ejder-leads") : null;
-    if (stored) {
+    const fetchLeads = async () => {
       try {
-        setLeads(JSON.parse(stored));
-      } catch {
-        console.warn("Geçersiz yerel veri bulundu.");
+        const response = await fetch("/api/leads", { cache: "no-store" });
+        if (response.ok) {
+          const data = await response.json();
+          if (Array.isArray(data.leads) && data.leads.length > 0) {
+            setLeads(data.leads);
+          }
+        } else {
+          console.error("Leads fetch failed", response.status, response.statusText);
+        }
+      } catch (error) {
+        console.error("Leads fetch failed", error);
+      } finally {
+        setLoading(false);
       }
-    }
+    };
+
+    fetchLeads();
   }, []);
 
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      window.localStorage.setItem("ejder-leads", JSON.stringify(leads));
+  const saveLeadToDb = async (lead: Lead) => {
+    try {
+      const response = await fetch("/api/leads", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ lead }),
+      });
+      if (!response.ok) {
+        throw new Error("Failed to save lead");
+      }
+    } catch (error) {
+      console.error(error);
+      setSyncError("Lead kaydedilirken hata oluştu.");
     }
-  }, [leads]);
+  };
+
+  const saveAllLeadsToDb = async (updatedLeads: Lead[]) => {
+    try {
+      const response = await fetch("/api/leads", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ leads: updatedLeads }),
+      });
+      if (!response.ok) {
+        throw new Error("Failed to persist leads");
+      }
+    } catch (error) {
+      console.error(error);
+      setSyncError("Leadler veritabanına kaydedilemedi.");
+    }
+  };
+
+  const deleteLeadsFromDb = async (ids: string[]) => {
+    try {
+      const response = await fetch("/api/leads", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids }),
+      });
+      if (!response.ok) {
+        throw new Error("Failed to delete leads");
+      }
+    } catch (error) {
+      console.error(error);
+      setSyncError("Leadler silinirken hata oluştu.");
+    }
+  };
 
   const personLeads = useMemo(
     () => leads.filter((lead) => lead.salesPerson === currentPerson.name),
@@ -214,11 +221,13 @@ export default function HomePage() {
     [displayedLeads]
   );
 
-  const deleteDisplayedLeads = () => {
+  const deleteDisplayedLeads = async () => {
     if (filteredLeads.length === 0) return;
 
+    const idsToDelete = filteredLeads.map((lead) => lead.id);
     setLeads((current) => current.filter((lead) => !filteredLeads.some((filtered) => filtered.id === lead.id)));
     setSearchTerm("");
+    await deleteLeadsFromDb(idsToDelete);
   };
 
   const openModal = (lead: Lead) => {
@@ -227,83 +236,29 @@ export default function HomePage() {
 
   const closeModal = () => setModalState(null);
 
-  const saveLead = () => {
+  const saveLead = async () => {
     if (!modalState?.lead) return;
 
+    const updatedLead = { ...modalState.lead, status: modalState.status, notes: modalState.notes };
     setLeads((current) =>
-      current.map((lead) =>
-        lead.id === modalState.lead?.id
-          ? { ...lead, status: modalState.status, notes: modalState.notes }
-          : lead
-      )
+      current.map((lead) => (lead.id === updatedLead.id ? updatedLead : lead))
     );
     closeModal();
+    await saveLeadToDb(updatedLead);
   };
 
-  const distributeLeadsEvenly = () => {
-    setLeads((current) =>
-      current.map((lead, index) => ({
+  const distributeLeadsEvenly = async () => {
+    setLeads((current) => {
+      const updated = current.map((lead, index) => ({
         ...lead,
         salesPerson: salesPeople[index % salesPeople.length].name,
-      }))
-    );
+      }));
+      saveAllLeadsToDb(updated);
+      return updated;
+    });
 
     setShowAllLeads(true);
     setCurrentPerson(salesPeople[0]);
-  };
-
-  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    setUploadError(null);
-
-    try {
-      const data = await file.arrayBuffer();
-      const workbook = XLSX.read(data, { type: "array" });
-      const sheet = workbook.Sheets[workbook.SheetNames[0]];
-      if (!sheet) {
-        throw new Error("Excel dosyasında ilk sayfa bulunamadı.");
-      }
-
-      const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, { defval: "" });
-      const importedLeads: Lead[] = rows.map((row, index) => {
-        const id = getRowValue(row, ["id", "lead id", "leadid", "lead"]);
-        const name = getRowValue(row, ["ad", "isim", "name", "full name"]) || `Lead ${index + 1}`;
-        const company = getRowValue(row, ["şirket", "company", "firma"]);
-        const phone = getRowValue(row, ["telefon", "phone", "cep", "telefon no"]);
-        const salesPerson = findSalesPerson(
-          getRowValue(row, ["personel", "salesperson", "assigned to", "atanan", "sorumlu", "temsilci"])
-        ) || salesPeople[0].name;
-        const status = normalizeStatus(getRowValue(row, ["durum", "status", "aranıp", "arandı", "cevap"]));
-        const notes = getRowValue(row, ["not", "notes", "açıklama", "yorum"]);
-
-        return {
-          id: id || `lead-${Date.now()}-${index}`,
-          name,
-          company,
-          phone,
-          status,
-          salesPerson,
-          notes,
-        };
-      });
-
-      const allSamePerson = importedLeads.every((lead) => lead.salesPerson === salesPeople[0].name);
-      const finalLeads = allSamePerson
-        ? importedLeads.map((lead, index) => ({
-            ...lead,
-            salesPerson: salesPeople[index % salesPeople.length].name,
-          }))
-        : importedLeads;
-
-      setLeads(finalLeads);
-      setShowAllLeads(false);
-      setCurrentPerson(salesPeople[0]);
-    } catch (error) {
-      setUploadError("Excel dosyası yüklenemedi. Lütfen sütun başlıklarını kontrol edin.");
-      console.error(error);
-    }
   };
 
   return (
@@ -359,6 +314,23 @@ export default function HomePage() {
         </div>
       </div>
 
+      <div className="grid" style={{ marginTop: 24 }}>
+        <div className="card">
+          <h2>Veri Senkronizasyonu</h2>
+          {loading ? (
+            <p>Leadler yükleniyor...</p>
+          ) : syncError ? (
+            <p style={{ color: "#dc2626" }}>{syncError}</p>
+          ) : (
+            <p>Veritabanından leadler başarıyla yüklendi.</p>
+          )}
+          <button onClick={deleteDisplayedLeads}>Filtrelenmiş leadleri sil</button>
+          <button onClick={distributeLeadsEvenly} style={{ marginLeft: 12 }}>
+            Leadleri eşit dağıt
+          </button>
+        </div>
+      </div>
+
       <div className="card" style={{ marginTop: 24 }}>
         <h2>Lead Listesi</h2>
         <table className="table">
@@ -401,7 +373,7 @@ export default function HomePage() {
             ))}
             {filteredLeads.length === 0 && (
               <tr>
-                <td colSpan={6}>Seçili persona ait lead bulunamadı.</td>
+                <td colSpan={7}>Seçili persona ait lead bulunamadı.</td>
               </tr>
             )}
           </tbody>

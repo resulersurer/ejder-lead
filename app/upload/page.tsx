@@ -159,8 +159,14 @@ export default function UploadPage() {
           }))
         : importedLeads;
 
-      if (typeof window !== "undefined") {
-        window.localStorage.setItem("ejder-leads", JSON.stringify(finalLeads));
+      const response = await fetch("/api/leads", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ leads: finalLeads }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Sunucuya kaydedilemedi.");
       }
 
       setUploadMessage(`${finalLeads.length} lead başarıyla yüklendi. Ana sayfaya dönün.`);
