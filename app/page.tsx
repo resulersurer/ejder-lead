@@ -178,6 +178,15 @@ export default function HomePage() {
     closeModal();
   };
 
+  const distributeLeadsEvenly = () => {
+    setLeads((current) =>
+      [...current].map((lead, index) => ({
+        ...lead,
+        salesPerson: salesPeople[index % salesPeople.length].name,
+      }))
+    );
+  };
+
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -254,6 +263,9 @@ export default function HomePage() {
           <p>Excel dosyanızda personel ataması, durum ve not alanları varsa bu dosyayı yükleyebilirsiniz.</p>
           <input type="file" accept=".xlsx,.xls" onChange={handleFileUpload} />
           {uploadError && <p style={{ color: "#dc2626", marginTop: 12 }}>{uploadError}</p>}
+          <button type="button" className="secondary" style={{ marginTop: 12 }} onClick={distributeLeadsEvenly}>
+            Leadleri 24 personele eşitle
+          </button>
         </div>
 
         <div className="card">
