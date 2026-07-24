@@ -117,8 +117,6 @@ export default function HomePage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [showAllLeads, setShowAllLeads] = useState(false);
   const [modalState, setModalState] = useState<EditModalState | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [syncError, setSyncError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchLeads = async () => {
@@ -130,17 +128,10 @@ export default function HomePage() {
             setLeads(data.leads);
           }
         } else {
-          const payload = await response.json().catch(() => null);
-          const message = payload?.error || `Leads fetch failed ${response.status}`;
-          setSyncError(message);
-          console.error(message);
+          console.error("Leads fetch failed", response.status);
         }
       } catch (error) {
-        const message = error instanceof Error ? error.message : "Leads fetch failed";
-        setSyncError(message);
         console.error("Leads fetch failed", error);
-      } finally {
-        setLoading(false);
       }
     };
 
@@ -159,39 +150,6 @@ export default function HomePage() {
       }
     } catch (error) {
       console.error(error);
-      setSyncError("Lead kaydedilirken hata oluştu.");
-    }
-  };
-
-  const saveAllLeadsToDb = async (updatedLeads: Lead[]) => {
-    try {
-      const response = await fetch("/api/leads", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ leads: updatedLeads }),
-      });
-      if (!response.ok) {
-        throw new Error("Failed to persist leads");
-      }
-    } catch (error) {
-      console.error(error);
-      setSyncError("Leadler veritabanına kaydedilemedi.");
-    }
-  };
-
-  const deleteLeadsFromDb = async (ids: string[]) => {
-    try {
-      const response = await fetch("/api/leads", {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ids }),
-      });
-      if (!response.ok) {
-        throw new Error("Failed to delete leads");
-      }
-    } catch (error) {
-      console.error(error);
-      setSyncError("Leadler silinirken hata oluştu.");
     }
   };
 
@@ -226,15 +184,6 @@ export default function HomePage() {
     [displayedLeads]
   );
 
-  const deleteDisplayedLeads = async () => {
-    if (filteredLeads.length === 0) return;
-
-    const idsToDelete = filteredLeads.map((lead) => lead.id);
-    setLeads((current) => current.filter((lead) => !filteredLeads.some((filtered) => filtered.id === lead.id)));
-    setSearchTerm("");
-    await deleteLeadsFromDb(idsToDelete);
-  };
-
   const openModal = (lead: Lead) => {
     setModalState({ lead, notes: lead.notes, status: lead.status });
   };
@@ -250,20 +199,6 @@ export default function HomePage() {
     );
     closeModal();
     await saveLeadToDb(updatedLead);
-  };
-
-  const distributeLeadsEvenly = async () => {
-    setLeads((current) => {
-      const updated = current.map((lead, index) => ({
-        ...lead,
-        salesPerson: salesPeople[index % salesPeople.length].name,
-      }));
-      saveAllLeadsToDb(updated);
-      return updated;
-    });
-
-    setShowAllLeads(true);
-    setCurrentPerson(salesPeople[0]);
   };
 
   return (
@@ -316,23 +251,6 @@ export default function HomePage() {
           <p style={{ marginTop: 12 }}>
             Gösterilen lead: <strong>{filteredLeads.length}</strong> / {personLeads.length}
           </p>
-        </div>
-      </div>
-
-      <div className="grid" style={{ marginTop: 24 }}>
-        <div className="card">
-          <h2>Veri Senkronizasyonu</h2>
-          {loading ? (
-            <p>Leadler yükleniyor...</p>
-          ) : syncError ? (
-            <p style={{ color: "#dc2626" }}>{syncError}</p>
-          ) : (
-            <p>Veritabanından leadler başarıyla yüklendi.</p>
-          )}
-          <button onClick={deleteDisplayedLeads}>Filtrelenmiş leadleri sil</button>
-          <button onClick={distributeLeadsEvenly} style={{ marginLeft: 12 }}>
-            Leadleri eşit dağıt
-          </button>
         </div>
       </div>
 
