@@ -334,11 +334,12 @@ export default function HomePage() {
 
       <div className="grid">
         <div className="card">
-          <h2>Veri Yükle</h2>
-          <p>Excel dosyanızda personel ataması, durum ve not alanları varsa bu dosyayı yükleyebilirsiniz.</p>
-          <input type="file" accept=".xlsx,.xls" onChange={handleFileUpload} />
-          {uploadError && <p style={{ color: "#dc2626", marginTop: 12 }}>{uploadError}</p>}
-          <button type="button" className="secondary" style={{ marginTop: 12 }} onClick={distributeLeadsEvenly}>
+          <h2>Veri Yükleme Sayfası</h2>
+          <p>Lead Excel dosyanızı ayrı sayfadan yükleyin. Yükleme işleminden sonra ana sayfaya dönerek verileri görüntüleyebilirsiniz.</p>
+          <a href="/upload" className="secondary" style={{ display: "inline-block", marginTop: 12 }}>
+            Veri Yükleme Sayfasına Git
+          </a>
+          <button type="button" className="secondary" style={{ marginTop: 12, marginLeft: 8 }} onClick={distributeLeadsEvenly}>
             Leadleri 24 personele eşitle
           </button>
           <button
