@@ -180,13 +180,20 @@ export default function HomePage() {
 
   const counts = useMemo(
     () => ({
-      total: personLeads.length,
-      called: personLeads.filter((lead) => lead.status === "Called").length,
-      waiting: personLeads.filter((lead) => lead.status === "Waiting").length,
-      noAnswer: personLeads.filter((lead) => lead.status === "No Answer").length,
+      total: displayedLeads.length,
+      called: displayedLeads.filter((lead) => lead.status === "Called").length,
+      waiting: displayedLeads.filter((lead) => lead.status === "Waiting").length,
+      noAnswer: displayedLeads.filter((lead) => lead.status === "No Answer").length,
     }),
-    [personLeads]
+    [displayedLeads]
   );
+
+  const deleteDisplayedLeads = () => {
+    if (filteredLeads.length === 0) return;
+
+    setLeads((current) => current.filter((lead) => !filteredLeads.some((filtered) => filtered.id === lead.id)));
+    setSearchTerm("");
+  };
 
   const openModal = (lead: Lead) => {
     setModalState({ lead, notes: lead.notes, status: lead.status });
@@ -302,6 +309,14 @@ export default function HomePage() {
             onClick={() => setShowAllLeads((prev) => !prev)}
           >
             {showAllLeads ? "Sadece seçili personeli göster" : "Tüm leadleri göster"}
+          </button>
+          <button
+            type="button"
+            className="secondary"
+            style={{ marginTop: 12, marginLeft: 8, backgroundColor: "#dc2626", color: "#fff" }}
+            onClick={deleteDisplayedLeads}
+          >
+            Gösterilen leadleri sil
           </button>
         </div>
 
