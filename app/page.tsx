@@ -109,10 +109,34 @@ const normalizeStatus = (value: unknown): Lead["status"] => {
 
 const normalizeString = (value: unknown) => String(value ?? "").trim();
 
+const getRowValue = (row: Record<string, unknown>, keys: string[]) => {
+  const normalizedRow: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(row)) {
+    normalizedRow[normalizeString(key).toLowerCase()] = value;
+  }
+
+  for (const key of keys) {
+    const normalizedKey = normalizeString(key).toLowerCase();
+    const value = normalizedRow[normalizedKey];
+    if (value !== undefined && value !== null) {
+      const normalizedValue = normalizeString(value);
+      if (normalizedValue) return normalizedValue;
+    }
+  }
+
+  return "";
+};
+
+const findSalesPerson = (value: string) => {
+  const normalizedValue = normalizeString(value).toLowerCase();
+  return salesPeople.find((person) => person.name.toLowerCase() === normalizedValue)?.name ?? "";
+};
+
 export default function HomePage() {
   const [currentPerson, setCurrentPerson] = useState<SalesPerson>(salesPeople[0]);
   const [leads, setLeads] = useState<Lead[]>(initialLeads);
   const [searchTerm, setSearchTerm] = useState("");
+  const [showAllLeads, setShowAllLeads] = useState(false);
   const [modalState, setModalState] = useState<EditModalState | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
 
@@ -138,15 +162,20 @@ export default function HomePage() {
     [leads, currentPerson.name]
   );
 
+  const displayedLeads = useMemo(
+    () => (showAllLeads ? leads : personLeads),
+    [leads, personLeads, showAllLeads]
+  );
+
   const filteredLeads = useMemo(
     () =>
-      personLeads.filter(
+      displayedLeads.filter(
         (lead) =>
           lead.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
           lead.company.toLowerCase().includes(searchTerm.toLowerCase()) ||
           lead.phone.includes(searchTerm)
       ),
-    [personLeads, searchTerm]
+    [displayedLeads, searchTerm]
   );
 
   const counts = useMemo(
@@ -203,19 +232,19 @@ export default function HomePage() {
 
       const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, { defval: "" });
       const importedLeads: Lead[] = rows.map((row, index) => {
-        const id = normalizeString(row["id"] ?? row["ID"] ?? row["Lead ID"] ?? row["LeadId"] ?? index + 1);
-        const name = normalizeString(row["Ad"] ?? row["Name"] ?? row["İsim"] ?? row["Full Name"]);
-        const company = normalizeString(row["Şirket"] ?? row["Company"] ?? row["Firma"]);
-        const phone = normalizeString(row["Telefon"] ?? row["Phone"] ?? row["Cep"]);
-        const salesPerson = normalizeString(
-          row["Personel"] ?? row["SalesPerson"] ?? row["Assigned To"] ?? row["Atanan"] ?? ""
+        const id = getRowValue(row, ["id", "lead id", "leadid", "lead"]);
+        const name = getRowValue(row, ["ad", "isim", "name", "full name"]) || `Lead ${index + 1}`;
+        const company = getRowValue(row, ["şirket", "company", "firma"]);
+        const phone = getRowValue(row, ["telefon", "phone", "cep", "telefon no"]);
+        const salesPerson = findSalesPerson(
+          getRowValue(row, ["personel", "salesperson", "assigned to", "atanan", "sorumlu", "temsilci"])
         ) || salesPeople[0].name;
-        const status = normalizeStatus(row["Durum"] ?? row["Status"] ?? row["Arandı"] ?? "");
-        const notes = normalizeString(row["Not"] ?? row["Notes"] ?? row["Açıklama"] ?? "");
+        const status = normalizeStatus(getRowValue(row, ["durum", "status", "aranıp", "arandı", "cevap"]));
+        const notes = getRowValue(row, ["not", "notes", "açıklama", "yorum"]);
 
         return {
           id: id || `lead-${Date.now()}-${index}`,
-          name: name || `Lead ${index + 1}`,
+          name,
           company,
           phone,
           status,
@@ -266,12 +295,20 @@ export default function HomePage() {
           <button type="button" className="secondary" style={{ marginTop: 12 }} onClick={distributeLeadsEvenly}>
             Leadleri 24 personele eşitle
           </button>
+          <button
+            type="button"
+            className="secondary"
+            style={{ marginTop: 12, marginLeft: 8 }}
+            onClick={() => setShowAllLeads((prev) => !prev)}
+          >
+            {showAllLeads ? "Sadece seçili personeli göster" : "Tüm leadleri göster"}
+          </button>
         </div>
 
         <div className="card">
           <h2>Genel Bilgiler</h2>
           <p>Seçili personel: <strong>{currentPerson.name}</strong></p>
-          <p>Toplam lead: <strong>{counts.total}</strong></p>
+          <p>{showAllLeads ? "Tüm leadler" : "Toplam lead"}: <strong>{counts.total}</strong></p>
           <p>Aranmış lead: <strong>{counts.called}</strong></p>
           <p>Bekleyen lead: <strong>{counts.waiting}</strong></p>
           <p>Cevap alınamayan lead: <strong>{counts.noAnswer}</strong></p>
@@ -302,6 +339,7 @@ export default function HomePage() {
               <th>Ad</th>
               <th>Şirket</th>
               <th>Telefon</th>
+              <th>Personel</th>
               <th>Durum</th>
               <th>Not</th>
               <th>İşlem</th>
@@ -313,6 +351,7 @@ export default function HomePage() {
                 <td>{lead.name}</td>
                 <td>{lead.company}</td>
                 <td>{lead.phone}</td>
+                <td>{lead.salesPerson}</td>
                 <td>
                   <span className={`badge ${
                     lead.status === "Called"
