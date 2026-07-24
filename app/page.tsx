@@ -109,17 +109,40 @@ const normalizeStatus = (value: unknown): Lead["status"] => {
 
 const normalizeString = (value: unknown) => String(value ?? "").trim();
 
+const normalizeKey = (value: string) =>
+  normalizeString(value)
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .replace(/[^a-z0-9\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
 const getRowValue = (row: Record<string, unknown>, keys: string[]) => {
   const normalizedRow: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(row)) {
-    normalizedRow[normalizeString(key).toLowerCase()] = value;
+    normalizedRow[normalizeKey(key)] = value;
   }
 
+  const availableKeys = Object.keys(normalizedRow);
+
   for (const key of keys) {
-    const normalizedKey = normalizeString(key).toLowerCase();
+    const normalizedKey = normalizeKey(key);
     const value = normalizedRow[normalizedKey];
     if (value !== undefined && value !== null) {
       const normalizedValue = normalizeString(value);
+      if (normalizedValue) return normalizedValue;
+    }
+  }
+
+  for (const key of keys) {
+    const normalizedKey = normalizeKey(key);
+    const foundKey = availableKeys.find(
+      (availableKey) =>
+        availableKey.includes(normalizedKey) || normalizedKey.includes(availableKey)
+    );
+    if (foundKey) {
+      const normalizedValue = normalizeString(normalizedRow[foundKey]);
       if (normalizedValue) return normalizedValue;
     }
   }
@@ -128,8 +151,11 @@ const getRowValue = (row: Record<string, unknown>, keys: string[]) => {
 };
 
 const findSalesPerson = (value: string) => {
-  const normalizedValue = normalizeString(value).toLowerCase();
-  return salesPeople.find((person) => person.name.toLowerCase() === normalizedValue)?.name ?? "";
+  const normalizedValue = normalizeKey(value);
+  const exactMatch = salesPeople.find((person) => normalizeKey(person.name) === normalizedValue);
+  if (exactMatch) return exactMatch.name;
+  const partialMatch = salesPeople.find((person) => normalizeKey(person.name).includes(normalizedValue) || normalizedValue.includes(normalizeKey(person.name)));
+  return partialMatch?.name ?? "";
 };
 
 export default function HomePage() {
@@ -261,6 +287,8 @@ export default function HomePage() {
       });
 
       setLeads(importedLeads);
+      setShowAllLeads(true);
+      setCurrentPerson(salesPeople[0]);
     } catch (error) {
       setUploadError("Excel dosyası yüklenemedi. Lütfen sütun başlıklarını kontrol edin.");
       console.error(error);
