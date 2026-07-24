@@ -241,12 +241,24 @@ export default function HomePage() {
   };
 
   const distributeLeadsEvenly = () => {
-    setLeads((current) =>
-      [...current].map((lead, index) => ({
+    setLeads((current) => {
+      const totalLeads = current.length;
+      const peopleCount = salesPeople.length;
+      const baseCount = Math.floor(totalLeads / peopleCount);
+      const remainder = totalLeads % peopleCount;
+
+      const assignments = salesPeople.flatMap((person, personIndex) =>
+        Array(baseCount + (personIndex < remainder ? 1 : 0)).fill(person.name)
+      );
+
+      return current.map((lead, index) => ({
         ...lead,
-        salesPerson: salesPeople[index % salesPeople.length].name,
-      }))
-    );
+        salesPerson: assignments[index] ?? salesPeople[index % peopleCount].name,
+      }));
+    });
+
+    setShowAllLeads(true);
+    setCurrentPerson(salesPeople[0]);
   };
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
