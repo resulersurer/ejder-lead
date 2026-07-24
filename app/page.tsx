@@ -130,9 +130,14 @@ export default function HomePage() {
             setLeads(data.leads);
           }
         } else {
-          console.error("Leads fetch failed", response.status, response.statusText);
+          const payload = await response.json().catch(() => null);
+          const message = payload?.error || `Leads fetch failed ${response.status}`;
+          setSyncError(message);
+          console.error(message);
         }
       } catch (error) {
+        const message = error instanceof Error ? error.message : "Leads fetch failed";
+        setSyncError(message);
         console.error("Leads fetch failed", error);
       } finally {
         setLoading(false);

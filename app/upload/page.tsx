@@ -129,6 +129,10 @@ export default function UploadPage() {
       }
 
       const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, { defval: "" });
+      if (rows.length === 0) {
+        throw new Error("Excel dosyasında veri bulunamadı. Lütfen doğru sayfayı ve başlıkları kontrol edin.");
+      }
+
       const importedLeads: Lead[] = rows.map((row, index) => {
         const id = getRowValue(row, ["id", "lead id", "leadid", "lead"]);
         const name = getRowValue(row, ["ad", "isim", "name", "full name"]) || `Lead ${index + 1}`;
@@ -166,12 +170,21 @@ export default function UploadPage() {
       });
 
       if (!response.ok) {
-        throw new Error("Sunucuya kaydedilemedi.");
+        const text = await response.text();
+        let message = `Sunucu hatası: ${response.status}`;
+        try {
+          const payload = JSON.parse(text);
+          message = payload.error || message;
+        } catch {
+          if (text) message = text;
+        }
+        throw new Error(message);
       }
 
       setUploadMessage(`${finalLeads.length} lead başarıyla yüklendi. Ana sayfaya dönün.`);
     } catch (error) {
-      setUploadError("Excel dosyası yüklenemedi. Lütfen sütun başlıklarını kontrol edin.");
+      const message = error instanceof Error ? error.message : "Excel dosyası yüklenemedi. Lütfen sütun başlıklarını kontrol edin.";
+      setUploadError(message);
       console.error(error);
     }
   };
