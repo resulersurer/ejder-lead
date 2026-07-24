@@ -334,30 +334,6 @@ export default function HomePage() {
 
       <div className="grid">
         <div className="card">
-          <h2>Veri Yönetimi</h2>
-          <p>Lead verilerinizi bu sayfada görüntüleyebilir, filtreleyebilir ve silebilirsiniz.</p>
-          <button type="button" className="secondary" style={{ marginTop: 12 }} onClick={distributeLeadsEvenly}>
-            Leadleri 24 personele eşitle
-          </button>
-          <button
-            type="button"
-            className="secondary"
-            style={{ marginTop: 12, marginLeft: 8 }}
-            onClick={() => setShowAllLeads((prev) => !prev)}
-          >
-            {showAllLeads ? "Sadece seçili personeli göster" : "Tüm leadleri göster"}
-          </button>
-          <button
-            type="button"
-            className="secondary"
-            style={{ marginTop: 12, marginLeft: 8, backgroundColor: "#dc2626", color: "#fff" }}
-            onClick={deleteDisplayedLeads}
-          >
-            Gösterilen leadleri sil
-          </button>
-        </div>
-
-        <div className="card">
           <h2>Genel Bilgiler</h2>
           <p>Seçili personel: <strong>{currentPerson.name}</strong></p>
           <p>{showAllLeads ? "Tüm leadler" : "Toplam lead"}: <strong>{counts.total}</strong></p>
