@@ -24,10 +24,32 @@ type EditModalState = {
   status: Lead["status"];
 };
 
-const salesPeople: SalesPerson[] = Array.from({ length: 24 }, (_, index) => ({
-  id: `p-${index + 1}`,
-  name: `Personel ${index + 1}`,
-}));
+const salesPeople: SalesPerson[] = [
+  { id: "p-1", name: "NAZLICAN TUĞAL" },
+  { id: "p-2", name: "ÇAĞAN GENCER" },
+  { id: "p-3", name: "NURGÜL KOÇ" },
+  { id: "p-4", name: "YELİZ KABAKÇI" },
+  { id: "p-5", name: "ERDİNÇ KÖSEBİŞ" },
+  { id: "p-6", name: "YAREN DİKİLİTAŞ" },
+  { id: "p-7", name: "LEYLA SANEM UZUN" },
+  { id: "p-8", name: "OKAN ZİYLAN" },
+  { id: "p-9", name: "MUSTAFA ŞAHŞER ŞAHİN" },
+  { id: "p-10", name: "ŞİYAR KARADERE" },
+  { id: "p-11", name: "ÖZLEM YENER" },
+  { id: "p-12", name: "SİMAY KÖROĞLU" },
+  { id: "p-13", name: "SELİN ÖZBEY" },
+  { id: "p-14", name: "SEFA AYDAŞ" },
+  { id: "p-15", name: "RAMAZAN KOÇAK" },
+  { id: "p-16", name: "MUSA GÜNEŞ" },
+  { id: "p-17", name: "GİZEM BİLGİ" },
+  { id: "p-18", name: "FURKAN YILMAZ" },
+  { id: "p-19", name: "ELİF DİLAN EKİCİ" },
+  { id: "p-20", name: "ECEM BALKI" },
+  { id: "p-21", name: "CEREN VAREL" },
+  { id: "p-22", name: "CEMAL HALİL EMİR" },
+  { id: "p-23", name: "BEDİRHAN HEKİM" },
+  { id: "p-24", name: "BAHAR KELEŞ" },
+];
 
 const initialLeads: Lead[] = [
   {
@@ -36,7 +58,7 @@ const initialLeads: Lead[] = [
     company: "ABC Teknoloji",
     phone: "+90 532 123 45 67",
     status: "New",
-    salesPerson: "Personel 1",
+    salesPerson: "NAZLICAN TUĞAL",
     notes: "",
   },
   {
@@ -45,7 +67,7 @@ const initialLeads: Lead[] = [
     company: "XYZ Yazılım",
     phone: "+90 532 234 56 78",
     status: "New",
-    salesPerson: "Personel 2",
+    salesPerson: "ÇAĞAN GENCER",
     notes: "",
   },
   {
@@ -54,7 +76,7 @@ const initialLeads: Lead[] = [
     company: "Delta Enerji",
     phone: "+90 532 345 67 89",
     status: "New",
-    salesPerson: "Personel 3",
+    salesPerson: "NURGÜL KOÇ",
     notes: "",
   },
   {
@@ -63,7 +85,7 @@ const initialLeads: Lead[] = [
     company: "Omega İnşaat",
     phone: "+90 532 456 78 90",
     status: "New",
-    salesPerson: "Personel 4",
+    salesPerson: "YELİZ KABAKÇI",
     notes: "",
   },
   {
@@ -72,7 +94,7 @@ const initialLeads: Lead[] = [
     company: "Nova Danışmanlık",
     phone: "+90 532 567 89 01",
     status: "New",
-    salesPerson: "Personel 5",
+    salesPerson: "ERDİNÇ KÖSEBİŞ",
     notes: "",
   },
 ];
