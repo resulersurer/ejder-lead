@@ -2,8 +2,8 @@ html, body {
   margin: 0;
   padding: 0;
   font-family: Inter, system-ui, sans-serif;
-  background: #f6f8fb;
-  color: #111827;
+  background: linear-gradient(180deg, #f8fbff 0%, #eef4ff 100%);
+  color: #0f172a;
 }
 
 body {
@@ -72,11 +72,11 @@ button, input, textarea, select {
 }
 
 .card {
-  background: #ffffff;
-  border: 1px solid #e5e7eb;
-  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.96);
+  border: 1px solid #dbe7ff;
+  border-radius: 20px;
   padding: 20px;
-  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+  box-shadow: 0 14px 40px rgba(37, 99, 235, 0.08);
 }
 
 .header {
@@ -107,7 +107,7 @@ button, input, textarea, select {
 
 .table th {
   font-weight: 600;
-  color: #111827;
+  color: #0f172a;
 }
 
 .badge {
@@ -153,10 +153,11 @@ button.danger {
 
 input, select, textarea {
   width: 100%;
-  border: 1px solid #d1d5db;
-  border-radius: 10px;
+  border: 1px solid #cbd5e1;
+  border-radius: 12px;
   padding: 10px 12px;
   margin-top: 8px;
+  background: #ffffff;
 }
 
 textarea {
@@ -209,6 +210,7 @@ textarea {
 .metric-value {
   font-size: 32px;
   line-height: 1;
+  color: #1d4ed8;
 }
 
 .muted-text {
@@ -255,4 +257,50 @@ textarea {
   margin: 0;
   color: #6b7280;
   font-size: 14px;
+}
+
+.hero-card {
+  background: linear-gradient(135deg, #ffffff 0%, #eff6ff 45%, #f5f3ff 100%);
+}
+
+.hero-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.hero-text {
+  color: #1e293b;
+  font-size: 16px;
+  line-height: 1.8;
+}
+
+.hero-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 14px;
+  border-radius: 9999px;
+  background: linear-gradient(90deg, #2563eb, #7c3aed);
+  color: #ffffff;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.soft-metric-card {
+  padding: 18px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid #dbeafe;
+}
+
+.inner-card {
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid #dbeafe;
+  box-shadow: none;
+}
+
+.chart-track-soft {
+  background: #dbeafe;
 }

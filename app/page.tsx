@@ -95,6 +95,25 @@ export default function HomePage() {
     [personLeads]
   );
 
+  const statusChart = useMemo(
+    () => [
+      { label: "Yeni", value: personLeads.filter((lead) => lead.status === "Yeni").length, color: "#94a3b8" },
+      { label: "Arandı", value: counts.called, color: "#10b981" },
+      { label: "Bekliyor", value: counts.waiting, color: "#6366f1" },
+      { label: "Cevap Yok", value: counts.noAnswer, color: "#f59e0b" },
+      { label: "Satıldı", value: counts.sold, color: "#ec4899" },
+    ],
+    [counts, personLeads]
+  );
+
+  const maxChartValue = Math.max(...statusChart.map((item) => item.value), 1);
+  const motivationMessage =
+    counts.sold > 0
+      ? "Harika gidiyorsunuz; kapanan satışlar ekibin ritmini yukarı taşıyor."
+      : counts.called > 0
+      ? "İyi bir tempo var; düzenli takip satış ihtimalini güçlendirir."
+      : "Bugünün ilk araması ekibin enerjisini başlatır; en üstteki yeni leadlerden başlayın.";
+
   const openModal = (lead: Lead) => {
     setModalState({ lead, notes: lead.notes, status: lead.status });
   };
@@ -142,14 +161,68 @@ export default function HomePage() {
       </div>
 
       <div className="grid">
-        <div className="card">
-          <h2>Dashboard</h2>
-          <p>Seçili satışçı: <strong>{currentPerson?.name ?? "Tüm satışçılar"}</strong></p>
-          <p>Toplam lead: <strong>{counts.total}</strong></p>
-          <p>Arandı: <strong>{counts.called}</strong></p>
-          <p>Bekliyor: <strong>{counts.waiting}</strong></p>
-          <p>Cevap yok: <strong>{counts.noAnswer}</strong></p>
-          <p>Satıldı: <strong>{counts.sold}</strong></p>
+        <div className="card hero-card">
+          <div className="hero-card-header">
+            <div>
+              <h2>Günün Performans Ekranı</h2>
+              <p className="hero-text">
+                Seçili satışçı: <strong>{currentPerson?.name ?? "Tüm satışçılar"}</strong>
+              </p>
+            </div>
+            <div className="hero-badge">Motivasyon Yüksek</div>
+          </div>
+
+          <div className="dashboard-summary-grid" style={{ marginTop: 20 }}>
+            <div className="metric-card soft-metric-card">
+              <span className="metric-label">Toplam Lead</span>
+              <strong className="metric-value">{counts.total}</strong>
+            </div>
+            <div className="metric-card soft-metric-card">
+              <span className="metric-label">Arandı</span>
+              <strong className="metric-value">{counts.called}</strong>
+            </div>
+            <div className="metric-card soft-metric-card">
+              <span className="metric-label">Bekliyor</span>
+              <strong className="metric-value">{counts.waiting}</strong>
+            </div>
+            <div className="metric-card soft-metric-card">
+              <span className="metric-label">Satıldı</span>
+              <strong className="metric-value">{counts.sold}</strong>
+            </div>
+          </div>
+
+          <div className="grid" style={{ marginTop: 24 }}>
+            <div className="card inner-card">
+              <h3>Durum Grafiği</h3>
+              <div className="chart-list">
+                {statusChart.map((item) => (
+                  <div key={item.label} className="chart-row">
+                    <div className="chart-row-header">
+                      <span>{item.label}</span>
+                      <strong>{item.value}</strong>
+                    </div>
+                    <div className="chart-track chart-track-soft">
+                      <div
+                        className="chart-bar"
+                        style={{
+                          width: `${(item.value / maxChartValue) * 100}%`,
+                          backgroundColor: item.color,
+                        }}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="card inner-card">
+              <h3>Takım Mesajı</h3>
+              <p className="hero-text">{motivationMessage}</p>
+              <p className="muted-text">
+                Yeni leadler listenin en üstünde tutuluyor. Hızlı geri dönüş, satış ihtimalini artırır ve ritmi canlı tutar.
+              </p>
+            </div>
+          </div>
         </div>
       </div>
 
