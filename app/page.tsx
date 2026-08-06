@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { Lead, SalesPerson, salesPeople, statusOptions } from "./shared";
 
@@ -111,11 +110,6 @@ export default function HomePage() {
         <div>
           <h1>Lead Yönetimi</h1>
           <p>Personel seçerek leadlerinizi görüntüleyin, durum güncelleyin ve not ekleyin.</p>
-        </div>
-        <div className="header-actions">
-          <Link href="/dashboard" className="button-link">
-            Dashboard
-          </Link>
         </div>
         <div style={{ minWidth: 240 }}>
           <label htmlFor="sales-person">Personel seçiniz</label>

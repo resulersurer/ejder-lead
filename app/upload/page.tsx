@@ -92,11 +92,6 @@ export default function UploadPage() {
           <h1>Veri Yükle</h1>
           <p>Excel dosyanızı bu sayfadan yükleyin. Yükleme tamamlandıktan sonra ana sayfaya dönerek leadleri görüntüleyebilirsiniz.</p>
         </div>
-        <div style={{ minWidth: 240 }}>
-          <Link href="/" className="secondary">
-            Ana sayfaya dön
-          </Link>
-        </div>
       </div>
 
       <div className="card">

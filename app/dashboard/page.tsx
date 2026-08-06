@@ -125,11 +125,6 @@ export default function DashboardPage() {
           <h1>Satış Dashboard</h1>
           <p>Tüm lead verilerini grafiklerle inceleyin, satışçı performansını ve durum dağılımını tek ekranda görün.</p>
         </div>
-        <div className="header-actions">
-          <Link href="/" className="button-link secondary">
-            Lead listesine dön
-          </Link>
-        </div>
       </div>
 
       <div className="grid dashboard-summary-grid">
