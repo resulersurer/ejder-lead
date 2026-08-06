@@ -87,20 +87,6 @@ export default function DashboardPage() {
       .slice(0, 8);
   }, [leads]);
 
-  const companyHighlights = useMemo(() => {
-    const grouped = new Map<string, number>();
-
-    for (const lead of leads) {
-      const companyName = lead.company || "Belirtilmemiş";
-      grouped.set(companyName, (grouped.get(companyName) ?? 0) + 1);
-    }
-
-    return Array.from(grouped.entries())
-      .map(([company, total]) => ({ company, total }))
-      .sort((left, right) => right.total - left.total)
-      .slice(0, 6);
-  }, [leads]);
-
   const summaryText = useMemo(() => {
     if (!totalLeads) {
       return "Henüz analiz edilecek lead verisi yok.";
@@ -118,6 +104,33 @@ export default function DashboardPage() {
   const maxStatusCount = Math.max(...statusCounts.map((item) => item.count), 1);
   const maxSalesCount = Math.max(...topSalesPeople.map((item) => item.total), 1);
   const bestPerformer = topSalesPeople[0] ?? null;
+  const salespersonInsights = useMemo(
+    () =>
+      topSalesPeople.map((item) => {
+        let tone = "Dengeli tempo";
+        let comment = "Takip temposu korunursa performans daha da yukarı taşınabilir.";
+
+        if (item.ratio >= 30) {
+          tone = "Yüksek performans";
+          comment = `${item.name}, satışa dönüşümde güçlü bir ivme yakaladı. Bu yaklaşımı ekip içinde örneklemek faydalı olur.`;
+        } else if (item.ratio >= 15) {
+          tone = "Güçlü potansiyel";
+          comment = `${item.name}, istikrarlı ilerliyor. Düzenli takip ile bu oran kısa sürede daha da yükselebilir.`;
+        } else if (item.sold > 0) {
+          tone = "Gelişen çizgi";
+          comment = `${item.name}, satış üretmeye başladı. Benzer lead tiplerinde aynı yaklaşım sürdürülürse ivme artabilir.`;
+        } else if (item.total >= 5) {
+          tone = "Takip odağı gerekli";
+          comment = `${item.name} için lead hacmi var ancak satışa dönüşüm henüz düşük. Önceliklendirilmiş geri dönüş planı etkili olabilir.`;
+        } else {
+          tone = "Hazırlık aşaması";
+          comment = `${item.name} için veri henüz sınırlı. Daha fazla temasla performans resmi netleşecektir.`;
+        }
+
+        return { ...item, tone, comment };
+      }),
+    [topSalesPeople]
+  );
 
   return (
     <main className="container">
@@ -229,37 +242,31 @@ export default function DashboardPage() {
 
       <div className="grid" style={{ marginTop: 24 }}>
         <div className="card">
-          <h2>Öne Çıkan Şirketler</h2>
-          <table className="table">
-            <thead>
-              <tr>
-                <th>Şirket</th>
-                <th>Lead Sayısı</th>
-              </tr>
-            </thead>
-            <tbody>
-              {companyHighlights.map((item) => (
-                <tr key={item.company}>
-                  <td>{item.company}</td>
-                  <td>{item.total}</td>
-                </tr>
-              ))}
-              {companyHighlights.length === 0 && (
-                <tr>
-                  <td colSpan={2}>Şirket verisi bulunamadı.</td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+          <h2>Satışçı Yorumları</h2>
+          <div className="insight-list">
+            {salespersonInsights.map((item) => (
+              <div key={item.name} className="insight-card">
+                <div className="insight-header">
+                  <div>
+                    <strong>{item.name}</strong>
+                    <p className="chart-note">{item.tone}</p>
+                  </div>
+                  <span className="performance-rate-badge">{formatPercent(item.ratio)}</span>
+                </div>
+                <p className="muted-text">{item.comment}</p>
+              </div>
+            ))}
+            {salespersonInsights.length === 0 && <p className="muted-text">Yorum üretilecek satışçı verisi yok.</p>}
+          </div>
         </div>
 
         <div className="card">
-          <h2>Yorum</h2>
+          <h2>Genel Yönetici Notu</h2>
           <p className="muted-text">
-            Bu ekran, hangi satışçının daha fazla lead yönettiğini, hangi durumların öne çıktığını ve satışa dönüşen kayıtların genel oranını hızlıca görmeniz için hazırlandı.
+            Bu alan satışçı performansına göre otomatik yorum üretir. Dönüşüm oranı yükseldikçe yorumlar daha güçlü, takip ihtiyacı arttıkça yorumlar daha yönlendirici hale gelir.
           </p>
           <p className="muted-text">
-            Özellikle <strong>Bekliyor</strong> ve <strong>Cevap Yok</strong> oranları yükselirse geri dönüş sürecini hızlandırmak, <strong>Satıldı</strong> oranı yüksek satışçıların çalışma biçimini örnek almak faydalı olur.
+            Özellikle <strong>Satıldı</strong> oranı yüksek satışçılar örnek alınabilir; satış üretmeyen ama yoğun lead yöneten ekip üyeleri için ise hızlı aksiyon planı oluşturmak faydalı olur.
           </p>
         </div>
       </div>
