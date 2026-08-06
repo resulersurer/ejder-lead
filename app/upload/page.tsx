@@ -9,7 +9,7 @@ type Lead = {
   name: string;
   company: string;
   phone: string;
-  status: "New" | "Called" | "No Answer" | "Waiting";
+  status: "Yeni" | "Arandı" | "Cevap Yok" | "Bekliyor" | "Satıldı";
   salesPerson: string;
   notes: string;
 };
@@ -48,10 +48,11 @@ const salesPeople: SalesPerson[] = [
 
 const normalizeStatus = (value: unknown): Lead["status"] => {
   const raw = String(value ?? "").trim();
-  if (/called/i.test(raw) || /aran(dı|dı)/i.test(raw)) return "Called";
-  if (/no answer/i.test(raw) || /cevap/i.test(raw)) return "No Answer";
-  if (/waiting/i.test(raw) || /bekle/i.test(raw)) return "Waiting";
-  return "New";
+  if (/sold|sat[ıi]ld[ıi]/i.test(raw)) return "Satıldı";
+  if (/called/i.test(raw) || /aran(dı|di)/i.test(raw)) return "Arandı";
+  if (/no answer/i.test(raw) || /cevap/i.test(raw)) return "Cevap Yok";
+  if (/waiting/i.test(raw) || /bekle/i.test(raw)) return "Bekliyor";
+  return "Yeni";
 };
 
 const normalizeString = (value: unknown) => String(value ?? "").trim();

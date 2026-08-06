@@ -7,7 +7,7 @@ type Lead = {
   name: string;
   company: string;
   phone: string;
-  status: "New" | "Called" | "No Answer" | "Waiting";
+  status: "Yeni" | "Arandı" | "Cevap Yok" | "Bekliyor" | "Satıldı";
   salesPerson: string;
   notes: string;
 };
@@ -22,6 +22,8 @@ type EditModalState = {
   notes: string;
   status: Lead["status"];
 };
+
+const statusOptions: Lead["status"][] = ["Yeni", "Arandı", "Cevap Yok", "Bekliyor", "Satıldı"];
 
 const salesPeople: SalesPerson[] = [
   { id: "p-1", name: "NAZLICAN TUĞAL" },
@@ -54,10 +56,11 @@ const initialLeads: Lead[] = [];
 
 const normalizeStatus = (value: unknown): Lead["status"] => {
   const raw = String(value ?? "").trim();
-  if (/called/i.test(raw) || /aran(dı|dı)/i.test(raw)) return "Called";
-  if (/no answer/i.test(raw) || /cevap/i.test(raw)) return "No Answer";
-  if (/waiting/i.test(raw) || /bekle/i.test(raw)) return "Waiting";
-  return "New";
+  if (/sold|sat[ıi]ld[ıi]/i.test(raw)) return "Satıldı";
+  if (/called/i.test(raw) || /aran(dı|di)/i.test(raw)) return "Arandı";
+  if (/no answer/i.test(raw) || /cevap/i.test(raw)) return "Cevap Yok";
+  if (/waiting/i.test(raw) || /bekle/i.test(raw)) return "Bekliyor";
+  return "Yeni";
 };
 
 const normalizeString = (value: unknown) => String(value ?? "").trim();
@@ -112,10 +115,10 @@ const findSalesPerson = (value: string) => {
 };
 
 export default function HomePage() {
-  const [currentPerson, setCurrentPerson] = useState<SalesPerson>(salesPeople[0]);
+  const [currentPersonId, setCurrentPersonId] = useState<string>("all");
   const [leads, setLeads] = useState<Lead[]>(initialLeads);
   const [searchTerm, setSearchTerm] = useState("");
-  const [showAllLeads, setShowAllLeads] = useState(false);
+  const [selectedStatus, setSelectedStatus] = useState<string>("all");
   const [modalState, setModalState] = useState<EditModalState | null>(null);
 
   useEffect(() => {
@@ -153,35 +156,38 @@ export default function HomePage() {
     }
   };
 
-  const personLeads = useMemo(
-    () => leads.filter((lead) => lead.salesPerson === currentPerson.name),
-    [leads, currentPerson.name]
+  const currentPerson = useMemo(
+    () => salesPeople.find((person) => person.id === currentPersonId) ?? null,
+    [currentPersonId]
   );
 
-  const displayedLeads = useMemo(
-    () => (showAllLeads ? leads : personLeads),
-    [leads, personLeads, showAllLeads]
-  );
+  const personLeads = useMemo(() => {
+    if (currentPersonId === "all") return leads;
+    return leads.filter((lead) => lead.salesPerson === currentPerson?.name);
+  }, [currentPerson, currentPersonId, leads]);
 
   const filteredLeads = useMemo(
     () =>
-      displayedLeads.filter(
-        (lead) =>
+      personLeads.filter((lead) => {
+        const matchesSearch =
           lead.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
           lead.company.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          lead.phone.includes(searchTerm)
-      ),
-    [displayedLeads, searchTerm]
+          lead.phone.includes(searchTerm);
+        const matchesStatus = selectedStatus === "all" || lead.status === selectedStatus;
+        return matchesSearch && matchesStatus;
+      }),
+    [personLeads, searchTerm, selectedStatus]
   );
 
   const counts = useMemo(
     () => ({
-      total: displayedLeads.length,
-      called: displayedLeads.filter((lead) => lead.status === "Called").length,
-      waiting: displayedLeads.filter((lead) => lead.status === "Waiting").length,
-      noAnswer: displayedLeads.filter((lead) => lead.status === "No Answer").length,
+      total: personLeads.length,
+      called: personLeads.filter((lead) => lead.status === "Arandı").length,
+      waiting: personLeads.filter((lead) => lead.status === "Bekliyor").length,
+      noAnswer: personLeads.filter((lead) => lead.status === "Cevap Yok").length,
+      sold: personLeads.filter((lead) => lead.status === "Satıldı").length,
     }),
-    [displayedLeads]
+    [personLeads]
   );
 
   const openModal = (lead: Lead) => {
@@ -212,12 +218,10 @@ export default function HomePage() {
           <label htmlFor="sales-person">Personel seçiniz</label>
           <select
             id="sales-person"
-            value={currentPerson.id}
-            onChange={(event) => {
-              const selected = salesPeople.find((p) => p.id === event.target.value);
-              if (selected) setCurrentPerson(selected);
-            }}
+            value={currentPersonId}
+            onChange={(event) => setCurrentPersonId(event.target.value)}
           >
+            <option value="all">Tüm satışçılar</option>
             {salesPeople.map((person) => (
               <option key={person.id} value={person.id}>
                 {person.name}
@@ -229,12 +233,13 @@ export default function HomePage() {
 
       <div className="grid">
         <div className="card">
-          <h2>Genel Bilgiler</h2>
-          <p>Seçili personel: <strong>{currentPerson.name}</strong></p>
-          <p>{showAllLeads ? "Tüm leadler" : "Toplam lead"}: <strong>{counts.total}</strong></p>
-          <p>Aranmış lead: <strong>{counts.called}</strong></p>
-          <p>Bekleyen lead: <strong>{counts.waiting}</strong></p>
-          <p>Cevap alınamayan lead: <strong>{counts.noAnswer}</strong></p>
+          <h2>Dashboard</h2>
+          <p>Seçili satışçı: <strong>{currentPerson?.name ?? "Tüm satışçılar"}</strong></p>
+          <p>Toplam lead: <strong>{counts.total}</strong></p>
+          <p>Arandı: <strong>{counts.called}</strong></p>
+          <p>Bekliyor: <strong>{counts.waiting}</strong></p>
+          <p>Cevap yok: <strong>{counts.noAnswer}</strong></p>
+          <p>Satıldı: <strong>{counts.sold}</strong></p>
         </div>
       </div>
 
@@ -248,8 +253,21 @@ export default function HomePage() {
             value={searchTerm}
             onChange={(event) => setSearchTerm(event.target.value)}
           />
+          <label htmlFor="status-filter" style={{ marginTop: 16 }}>Durum seçiniz</label>
+          <select
+            id="status-filter"
+            value={selectedStatus}
+            onChange={(event) => setSelectedStatus(event.target.value)}
+          >
+            <option value="all">Tüm durumlar</option>
+            {statusOptions.map((status) => (
+              <option key={status} value={status}>
+                {status}
+              </option>
+            ))}
+          </select>
           <p style={{ marginTop: 12 }}>
-            Gösterilen lead: <strong>{filteredLeads.length}</strong> / {personLeads.length}
+            Gösterilen lead: <strong>{filteredLeads.length}</strong> / {counts.total}
           </p>
         </div>
       </div>
@@ -277,11 +295,13 @@ export default function HomePage() {
                 <td>{lead.salesPerson}</td>
                 <td>
                   <span className={`badge ${
-                    lead.status === "Called"
+                    lead.status === "Arandı"
                       ? "status-calls"
-                      : lead.status === "No Answer"
+                      : lead.status === "Cevap Yok"
                       ? "status-pending"
-                      : lead.status === "Waiting"
+                      : lead.status === "Bekliyor"
+                      ? "status-notes"
+                      : lead.status === "Satıldı"
                       ? "status-notes"
                       : ""
                   }`}>
@@ -296,7 +316,7 @@ export default function HomePage() {
             ))}
             {filteredLeads.length === 0 && (
               <tr>
-                <td colSpan={7}>Seçili persona ait lead bulunamadı.</td>
+                <td colSpan={7}>Seçili filtrelere uygun lead bulunamadı.</td>
               </tr>
             )}
           </tbody>
@@ -313,10 +333,11 @@ export default function HomePage() {
               value={modalState.status}
               onChange={(event) => setModalState((prev) => prev && { ...prev, status: event.target.value as Lead["status"] })}
             >
-              <option value="New">New</option>
-              <option value="Called">Called</option>
-              <option value="No Answer">No Answer</option>
-              <option value="Waiting">Waiting</option>
+              {statusOptions.map((status) => (
+                <option key={status} value={status}>
+                  {status}
+                </option>
+              ))}
             </select>
 
             <label htmlFor="notes">Not</label>
