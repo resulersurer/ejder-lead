@@ -92,6 +92,28 @@ button {
   color: white;
 }
 
+.button-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  padding: 10px 14px;
+  background: #2563eb;
+  color: #ffffff;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.button-link.secondary {
+  background: #6b7280;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
 button.secondary {
   background: #6b7280;
 }
@@ -138,4 +160,70 @@ textarea {
   justify-content: flex-end;
   gap: 12px;
   margin-top: 18px;
+}
+
+.dashboard-summary-grid {
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.metric-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.metric-label {
+  color: #6b7280;
+  font-size: 14px;
+}
+
+.metric-value {
+  font-size: 32px;
+  line-height: 1;
+}
+
+.muted-text {
+  color: #4b5563;
+  line-height: 1.7;
+}
+
+.chart-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.chart-row {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.chart-row-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.chart-track {
+  width: 100%;
+  height: 12px;
+  background: #e5e7eb;
+  border-radius: 9999px;
+  overflow: hidden;
+}
+
+.chart-bar {
+  height: 100%;
+  border-radius: 9999px;
+}
+
+.chart-bar-sales {
+  background: linear-gradient(90deg, #2563eb, #38bdf8);
+}
+
+.chart-note {
+  margin: 0;
+  color: #6b7280;
+  font-size: 14px;
 }
