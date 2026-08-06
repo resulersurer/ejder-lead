@@ -257,53 +257,51 @@ export default function HomePage() {
 
       <div className="card" style={{ marginTop: 24 }}>
         <h2>Lead Listesi</h2>
-        <table className="table">
-          <thead>
-            <tr>
-              <th>Ad</th>
-              <th>Şirket</th>
-              <th>Telefon</th>
-              <th>Personel</th>
-              <th>Durum</th>
-              <th>Not</th>
-              <th>İşlem</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredLeads.map((lead) => (
-              <tr key={lead.id}>
-                <td>{lead.name}</td>
-                <td>{lead.company}</td>
-                <td>{lead.phone}</td>
-                <td>{lead.salesPerson}</td>
-                <td>
-                  <span className={`badge ${
-                    lead.status === "Arandı"
-                      ? "status-calls"
-                      : lead.status === "Cevap Yok"
-                      ? "status-pending"
-                      : lead.status === "Bekliyor"
-                      ? "status-notes"
-                      : lead.status === "Satıldı"
-                      ? "status-notes"
-                      : ""
-                  }`}>
+        <div className="lead-list">
+          {filteredLeads.map((lead) => (
+            <div key={lead.id} className="lead-row-card">
+              <div className="lead-row-main">
+                <div>
+                  <div className="lead-row-title">
+                    <strong>{lead.name}</strong>
+                    {!lead.touched && lead.status === "Yeni" && (
+                      <span className="lead-priority-badge">Yeni Fırsat</span>
+                    )}
+                  </div>
+                  <p className="lead-row-subtitle">{lead.phone || "Telefon bilgisi yok"}</p>
+                </div>
+
+                <div className="lead-row-meta">
+                  <span className="lead-chip">{lead.salesPerson}</span>
+                  <span
+                    className={`badge ${
+                      lead.status === "Arandı"
+                        ? "status-calls"
+                        : lead.status === "Cevap Yok"
+                        ? "status-pending"
+                        : lead.status === "Bekliyor"
+                        ? "status-notes"
+                        : lead.status === "Satıldı"
+                        ? "status-notes"
+                        : ""
+                    }`}
+                  >
                     {lead.status}
                   </span>
-                </td>
-                <td>{lead.notes ? lead.notes : "—"}</td>
-                <td>
-                  <button onClick={() => openModal(lead)}>Düzenle</button>
-                </td>
-              </tr>
-            ))}
-            {filteredLeads.length === 0 && (
-              <tr>
-                <td colSpan={7}>Seçili filtrelere uygun lead bulunamadı.</td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+                </div>
+              </div>
+
+              <div className="lead-row-footer">
+                <p className="lead-note">{lead.notes ? lead.notes : "Henüz not eklenmedi."}</p>
+                <button onClick={() => openModal(lead)}>Düzenle</button>
+              </div>
+            </div>
+          ))}
+
+          {filteredLeads.length === 0 && (
+            <div className="lead-empty-state">Seçili filtrelere uygun lead bulunamadı.</div>
+          )}
+        </div>
       </div>
 
       {modalState?.lead && (
