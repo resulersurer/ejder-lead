@@ -65,14 +65,22 @@ export default function HomePage() {
 
   const filteredLeads = useMemo(
     () =>
-      personLeads.filter((lead) => {
-        const matchesSearch =
-          lead.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          lead.company.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          lead.phone.includes(searchTerm);
-        const matchesStatus = selectedStatus === "all" || lead.status === selectedStatus;
-        return matchesSearch && matchesStatus;
-      }),
+      personLeads
+        .filter((lead) => {
+          const matchesSearch =
+            lead.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            lead.company.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            lead.phone.includes(searchTerm);
+          const matchesStatus = selectedStatus === "all" || lead.status === selectedStatus;
+          return matchesSearch && matchesStatus;
+        })
+        .sort((left, right) => {
+          const leftUntouched = !left.touched && left.status === "Yeni";
+          const rightUntouched = !right.touched && right.status === "Yeni";
+
+          if (leftUntouched === rightUntouched) return 0;
+          return leftUntouched ? -1 : 1;
+        }),
     [personLeads, searchTerm, selectedStatus]
   );
 
@@ -96,7 +104,12 @@ export default function HomePage() {
   const saveLead = async () => {
     if (!modalState?.lead) return;
 
-    const updatedLead = { ...modalState.lead, status: modalState.status, notes: modalState.notes };
+    const updatedLead = {
+      ...modalState.lead,
+      status: modalState.status,
+      notes: modalState.notes,
+      touched: true,
+    };
     setLeads((current) =>
       current.map((lead) => (lead.id === updatedLead.id ? updatedLead : lead))
     );

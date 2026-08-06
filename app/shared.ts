@@ -8,6 +8,7 @@ export type Lead = {
   status: LeadStatus;
   salesPerson: string;
   notes: string;
+  touched?: boolean;
 };
 
 export type SalesPerson = {
