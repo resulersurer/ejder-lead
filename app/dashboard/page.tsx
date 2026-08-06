@@ -117,6 +117,7 @@ export default function DashboardPage() {
 
   const maxStatusCount = Math.max(...statusCounts.map((item) => item.count), 1);
   const maxSalesCount = Math.max(...topSalesPeople.map((item) => item.total), 1);
+  const bestPerformer = topSalesPeople[0] ?? null;
 
   return (
     <main className="container">
@@ -181,22 +182,44 @@ export default function DashboardPage() {
 
         <div className="card">
           <h2>Satışçı Performansı</h2>
-          <div className="chart-list">
-            {topSalesPeople.map((item) => (
-              <div key={item.name} className="chart-row">
-                <div className="chart-row-header">
-                  <span>{item.name}</span>
-                  <strong>
-                    {item.total} lead • {item.sold} satış
-                  </strong>
+          {bestPerformer && (
+            <div className="performance-highlight">
+              <span className="performance-highlight-label">Öne Çıkan Satışçı</span>
+              <strong className="performance-highlight-name">{bestPerformer.name}</strong>
+              <p className="chart-note">
+                {bestPerformer.total} lead içinde {bestPerformer.sold} satış yaptı. Dönüşüm oranı{" "}
+                {formatPercent(bestPerformer.ratio)}.
+              </p>
+            </div>
+          )}
+
+          <div className="performance-list">
+            {topSalesPeople.map((item, index) => (
+              <div key={item.name} className="performance-card">
+                <div className="performance-card-header">
+                  <div>
+                    <div className="performance-rank-row">
+                      <span className="performance-rank">#{index + 1}</span>
+                      <strong>{item.name}</strong>
+                    </div>
+                    <p className="chart-note">
+                      {item.total} lead • {item.sold} satış
+                    </p>
+                  </div>
+                  <div className="performance-rate-badge">{formatPercent(item.ratio)}</div>
                 </div>
-                <div className="chart-track">
+
+                <div className="chart-track performance-track">
                   <div
                     className="chart-bar chart-bar-sales"
                     style={{ width: `${(item.total / maxSalesCount) * 100}%` }}
                   />
                 </div>
-                <p className="chart-note">Dönüşüm oranı: {formatPercent(item.ratio)}</p>
+
+                <div className="performance-stats">
+                  <span>Toplam fırsat: {item.total}</span>
+                  <span>Kapanan satış: {item.sold}</span>
+                </div>
               </div>
             ))}
             {topSalesPeople.length === 0 && <p className="muted-text">Gösterilecek satışçı verisi yok.</p>}

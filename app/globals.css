@@ -393,3 +393,91 @@ textarea {
   color: #64748b;
   background: #f8fbff;
 }
+
+.performance-highlight {
+  margin-bottom: 18px;
+  padding: 18px;
+  border-radius: 18px;
+  background: linear-gradient(135deg, #eff6ff 0%, #f5f3ff 100%);
+  border: 1px solid #dbeafe;
+}
+
+.performance-highlight-label {
+  display: inline-flex;
+  margin-bottom: 8px;
+  color: #7c3aed;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.performance-highlight-name {
+  display: block;
+  font-size: 22px;
+  color: #0f172a;
+}
+
+.performance-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.performance-card {
+  padding: 16px;
+  border: 1px solid #dbeafe;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.82);
+}
+
+.performance-card-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.performance-rank-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #0f172a;
+}
+
+.performance-rank {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 36px;
+  height: 36px;
+  border-radius: 9999px;
+  background: #dbeafe;
+  color: #1d4ed8;
+  font-weight: 700;
+}
+
+.performance-rate-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 12px;
+  border-radius: 9999px;
+  background: linear-gradient(90deg, #2563eb, #7c3aed);
+  color: #ffffff;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.performance-track {
+  margin-top: 12px;
+}
+
+.performance-stats {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 10px;
+  color: #475569;
+  font-size: 14px;
+}
