@@ -106,4 +106,55 @@ export async function ensureLeadsTable() {
       'satä±ldä±'
     );
   `);
+
+  await db.query(`
+    WITH recipients(name, ord) AS (
+      SELECT *
+      FROM unnest(ARRAY[
+        'NAZLICAN TUĞAL',
+        'ÇAĞAN GENCER',
+        'NURGÜL KOÇ',
+        'YELİZ KABAKÇI',
+        'YAREN DİKİLİTAŞ',
+        'LEYLA SANEM UZUN',
+        'OKAN ZİYLAN',
+        'MUSTAFA ŞAHŞER ŞAHİN',
+        'ŞİYAR KARADERE',
+        'SİMAY KÖROĞLU',
+        'SELİN ÖZBEY',
+        'SEFA AYDAŞ',
+        'RAMAZAN KOÇAK',
+        'MUSA GÜNEŞ',
+        'GİZEM BİLGİ',
+        'FURKAN YILMAZ',
+        'ELİF DİLAN EKİCİ',
+        'ECEM BALKI',
+        'CEREN VAREL',
+        'CEMAL HALİL EMİR',
+        'BEDİRHAN HEKİM',
+        'BAHAR KELEŞ'
+      ]::TEXT[]) WITH ORDINALITY AS person(name, ord)
+    ),
+    recipient_count(total) AS (
+      SELECT COUNT(*) FROM recipients
+    ),
+    removed_leads AS (
+      SELECT
+        id,
+        ROW_NUMBER() OVER (ORDER BY created_at, id) AS rn
+      FROM leads
+      WHERE sales_person IN ('ERDİNÇ KÖSEBİŞ', 'ÖZLEM YENER')
+    ),
+    assignments AS (
+      SELECT removed_leads.id, recipients.name
+      FROM removed_leads
+      CROSS JOIN recipient_count
+      JOIN recipients
+        ON recipients.ord = ((removed_leads.rn - 1) % recipient_count.total) + 1
+    )
+    UPDATE leads
+    SET sales_person = assignments.name
+    FROM assignments
+    WHERE leads.id = assignments.id;
+  `);
 }
