@@ -1,21 +1,7 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-
-type LeadStatus = "Yeni" | "Arandı" | "Cevap Yok" | "Bekliyor" | "Satıldı";
-
-type Lead = {
-  id: string;
-  name: string;
-  company: string;
-  phone: string;
-  status: LeadStatus;
-  salesPerson: string;
-  notes: string;
-};
-
-const statusOptions: LeadStatus[] = ["Yeni", "Arandı", "Cevap Yok", "Bekliyor", "Satıldı"];
+import { Lead, LeadStatus, normalizeStatus, statusOptions } from "../shared";
 
 const statusColors: Record<LeadStatus, string> = {
   "Yeni": "#94a3b8",
@@ -40,7 +26,12 @@ export default function DashboardPage() {
 
         const data = await response.json();
         if (Array.isArray(data.leads)) {
-          setLeads(data.leads);
+          setLeads(
+            data.leads.map((lead: Lead) => ({
+              ...lead,
+              status: normalizeStatus(lead.status),
+            }))
+          );
         }
       } catch (error) {
         console.error(error);
@@ -70,7 +61,7 @@ export default function DashboardPage() {
     for (const lead of leads) {
       const current = grouped.get(lead.salesPerson) ?? { total: 0, sold: 0 };
       current.total += 1;
-      if (lead.status === "Satıldı") {
+      if (normalizeStatus(lead.status) === "Satıldı") {
         current.sold += 1;
       }
       grouped.set(lead.salesPerson, current);
@@ -83,7 +74,10 @@ export default function DashboardPage() {
         sold: counts.sold,
         ratio: counts.total ? (counts.sold / counts.total) * 100 : 0,
       }))
-      .sort((left, right) => right.total - left.total || right.sold - left.sold)
+      .sort(
+        (left, right) =>
+          right.sold - left.sold || right.ratio - left.ratio || right.total - left.total
+      )
       .slice(0, 8);
   }, [leads]);
 

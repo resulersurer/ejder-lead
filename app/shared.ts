@@ -47,8 +47,11 @@ export const salesPeople: SalesPerson[] = [
 
 export const normalizeStatus = (value: unknown): LeadStatus => {
   const raw = String(value ?? "").trim();
-  if (/sold|sat[ıi]ld[ıi]/i.test(raw)) return "Satıldı";
-  if (/called/i.test(raw) || /aran(dı|di)/i.test(raw)) return "Arandı";
+  const lower = raw.toLowerCase();
+  if (lower === "satä±ldä±") return "Satıldı";
+  if (lower === "arandä±") return "Arandı";
+  if (/sold|sat[ıiÄ±i]ld[ıiÄ±i]/i.test(raw)) return "Satıldı";
+  if (/called/i.test(raw) || /aran(dı|di|dÄ±)/i.test(raw)) return "Arandı";
   if (/no answer/i.test(raw) || /cevap/i.test(raw)) return "Cevap Yok";
   if (/waiting/i.test(raw) || /bekle/i.test(raw)) return "Bekliyor";
   return "Yeni";

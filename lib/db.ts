@@ -89,11 +89,21 @@ export async function ensureLeadsTable() {
     SET status = CASE
       WHEN LOWER(TRIM(status)) = 'new' THEN 'Yeni'
       WHEN LOWER(TRIM(status)) = 'called' THEN 'Arandı'
+      WHEN LOWER(TRIM(status)) = 'arandä±' THEN 'Arandı'
       WHEN LOWER(TRIM(status)) = 'no answer' THEN 'Cevap Yok'
       WHEN LOWER(TRIM(status)) = 'waiting' THEN 'Bekliyor'
       WHEN LOWER(TRIM(status)) = 'sold' THEN 'Satıldı'
+      WHEN LOWER(TRIM(status)) = 'satä±ldä±' THEN 'Satıldı'
       ELSE status
     END
-    WHERE LOWER(TRIM(status)) IN ('new', 'called', 'no answer', 'waiting', 'sold');
+    WHERE LOWER(TRIM(status)) IN (
+      'new',
+      'called',
+      'arandä±',
+      'no answer',
+      'waiting',
+      'sold',
+      'satä±ldä±'
+    );
   `);
 }

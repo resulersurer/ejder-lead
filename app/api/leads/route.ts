@@ -21,6 +21,10 @@ function normalizeLeadStatus(status: unknown) {
   if (value === "no answer") return "Cevap Yok";
   if (value === "waiting") return "Bekliyor";
   if (value === "sold") return "Satıldı";
+  if (value === "satä±ldä±") return "Satıldı";
+  if (value === "arandä±") return "Arandı";
+  if (/sat[ıiÄ±i]ld[ıiÄ±i]/i.test(raw)) return "Satıldı";
+  if (/aran(dı|di|dÄ±)/i.test(raw)) return "Arandı";
   return raw;
 }
 
