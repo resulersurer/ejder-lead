@@ -14,18 +14,20 @@ type Lead = {
 
 function normalizeLeadStatus(status: unknown) {
   const raw = String(status ?? "").trim();
-  const value = raw.toLowerCase();
-  if (!value) return "Yeni";
-  if (value === "new") return "Yeni";
-  if (value === "called") return "Arandı";
-  if (value === "no answer") return "Cevap Yok";
-  if (value === "waiting") return "Bekliyor";
-  if (value === "sold") return "Satıldı";
-  if (value === "satä±ldä±") return "Satıldı";
-  if (value === "arandä±") return "Arandı";
-  if (/sat[ıiÄ±i]ld[ıiÄ±i]/i.test(raw)) return "Satıldı";
-  if (/aran(dı|di|dÄ±)/i.test(raw)) return "Arandı";
-  return raw;
+  const key = raw
+    .toLowerCase()
+    .replace(/ä±|ã¤â±/g, "i")
+    .replace(/ı/g, "i")
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .replace(/[^a-z]/g, "");
+
+  if (!key || key === "new") return "Yeni";
+  if (key === "called" || key === "arandi") return "Arandı";
+  if (key === "noanswer" || key.includes("cevap")) return "Cevap Yok";
+  if (key === "waiting" || key.includes("bekle")) return "Bekliyor";
+  if (key === "sold" || key === "satildi") return "Satıldı";
+  return raw || "Yeni";
 }
 
 async function getAllLeads() {

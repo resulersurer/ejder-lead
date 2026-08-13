@@ -45,14 +45,14 @@ export default function DashboardPage() {
     () =>
       statusOptions.map((status) => ({
         status,
-        count: leads.filter((lead) => lead.status === status).length,
+        count: leads.filter((lead) => normalizeStatus(lead.status) === status).length,
       })),
     [leads]
   );
 
   const totalLeads = leads.length;
-  const soldCount = statusCounts.find((item) => item.status === "Satıldı")?.count ?? 0;
-  const waitingCount = statusCounts.find((item) => item.status === "Bekliyor")?.count ?? 0;
+  const soldCount = statusCounts.find((item) => item.status === normalizeStatus("sold"))?.count ?? 0;
+  const waitingCount = statusCounts.find((item) => item.status === normalizeStatus("waiting"))?.count ?? 0;
   const unreachableCount = statusCounts.find((item) => item.status === "Cevap Yok")?.count ?? 0;
 
   const topSalesPeople = useMemo(() => {
@@ -61,7 +61,7 @@ export default function DashboardPage() {
     for (const lead of leads) {
       const current = grouped.get(lead.salesPerson) ?? { total: 0, sold: 0 };
       current.total += 1;
-      if (normalizeStatus(lead.status) === "Satıldı") {
+      if (normalizeStatus(lead.status) === normalizeStatus("sold")) {
         current.sold += 1;
       }
       grouped.set(lead.salesPerson, current);

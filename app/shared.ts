@@ -47,13 +47,18 @@ export const salesPeople: SalesPerson[] = [
 
 export const normalizeStatus = (value: unknown): LeadStatus => {
   const raw = String(value ?? "").trim();
-  const lower = raw.toLowerCase();
-  if (lower === "satä±ldä±") return "Satıldı";
-  if (lower === "arandä±") return "Arandı";
-  if (/sold|sat[ıiÄ±i]ld[ıiÄ±i]/i.test(raw)) return "Satıldı";
-  if (/called/i.test(raw) || /aran(dı|di|dÄ±)/i.test(raw)) return "Arandı";
-  if (/no answer/i.test(raw) || /cevap/i.test(raw)) return "Cevap Yok";
-  if (/waiting/i.test(raw) || /bekle/i.test(raw)) return "Bekliyor";
+  const key = raw
+    .toLowerCase()
+    .replace(/ä±|ã¤â±/g, "i")
+    .replace(/ı/g, "i")
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .replace(/[^a-z]/g, "");
+
+  if (key === "sold" || key === "satildi") return "Satıldı";
+  if (key === "called" || key === "arandi") return "Arandı";
+  if (key === "noanswer" || key.includes("cevap")) return "Cevap Yok";
+  if (key === "waiting" || key.includes("bekle")) return "Bekliyor";
   return "Yeni";
 };
 
