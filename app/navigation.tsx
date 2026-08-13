@@ -16,7 +16,10 @@ export default function Navigation() {
     <nav className="top-nav">
       <div className="container top-nav-inner">
         <div>
-          <strong className="top-nav-title">Ejder Lead</strong>
+          <strong className="top-nav-title">
+            <span className="top-nav-mark">E</span>
+            Ejder Lead
+          </strong>
         </div>
         <div className="top-nav-links">
           {navigationItems.map((item) => {
@@ -26,6 +29,7 @@ export default function Navigation() {
               <Link
                 key={item.href}
                 href={item.href}
+                aria-current={isActive ? "page" : undefined}
                 className={isActive ? "top-nav-link active" : "top-nav-link"}
               >
                 {item.label}
