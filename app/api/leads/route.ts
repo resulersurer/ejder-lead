@@ -25,7 +25,7 @@ function normalizeLeadStatus(status: unknown) {
   if (!key || key === "new") return "Yeni";
   if (key === "called" || key === "arandi") return "Arandı";
   if (key === "noanswer" || key.includes("cevap")) return "Cevap Yok";
-  if (key === "waiting" || key.includes("bekle")) return "Bekliyor";
+  if (key === "waiting" || key.startsWith("bekl")) return "Bekliyor";
   if (key === "sold" || key === "satildi") return "Satıldı";
   return raw || "Yeni";
 }
