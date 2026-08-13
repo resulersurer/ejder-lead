@@ -117,6 +117,7 @@ export default function HomePage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [showAllLeads, setShowAllLeads] = useState(false);
   const [modalState, setModalState] = useState<EditModalState | null>(null);
+  const [isDeletingNoAnswer, setIsDeletingNoAnswer] = useState(false);
 
   useEffect(() => {
     const fetchLeads = async () => {
@@ -201,6 +202,41 @@ export default function HomePage() {
     await saveLeadToDb(updatedLead);
   };
 
+  const deleteNoAnswerLeads = async () => {
+    const idsToDelete = displayedLeads
+      .filter((lead) => lead.status === "No Answer")
+      .map((lead) => lead.id);
+
+    if (!idsToDelete.length || isDeletingNoAnswer) return;
+
+    const scopeText = showAllLeads ? "tum listedeki" : `${currentPerson.name} icin`;
+    const confirmed = window.confirm(
+      `${scopeText} ${idsToDelete.length} adet cevap yok lead silinsin mi?`
+    );
+
+    if (!confirmed) return;
+
+    setIsDeletingNoAnswer(true);
+    try {
+      const response = await fetch("/api/leads", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids: idsToDelete }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to delete no answer leads");
+      }
+
+      setLeads((current) => current.filter((lead) => !idsToDelete.includes(lead.id)));
+    } catch (error) {
+      console.error(error);
+      window.alert("Cevap yok leadler silinemedi. Lutfen tekrar deneyin.");
+    } finally {
+      setIsDeletingNoAnswer(false);
+    }
+  };
+
   return (
     <main className="container">
       <div className="header">
@@ -255,7 +291,16 @@ export default function HomePage() {
       </div>
 
       <div className="card" style={{ marginTop: 24 }}>
-        <h2>Lead Listesi</h2>
+        <div className="table-header">
+          <h2>Lead Listesi</h2>
+          <button
+            className="danger"
+            disabled={counts.noAnswer === 0 || isDeletingNoAnswer}
+            onClick={deleteNoAnswerLeads}
+          >
+            {isDeletingNoAnswer ? "Siliniyor..." : `Cevap yoklari sil (${counts.noAnswer})`}
+          </button>
+        </div>
         <table className="table">
           <thead>
             <tr>

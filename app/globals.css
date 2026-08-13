@@ -47,6 +47,18 @@ button, input, textarea, select {
   border-collapse: collapse;
 }
 
+.table-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.table-header h2 {
+  margin: 0;
+}
+
 .table th,
 .table td {
   padding: 12px 10px;
@@ -98,6 +110,11 @@ button.secondary {
 
 button.danger {
   background: #dc2626;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
 }
 
 input, select, textarea {
