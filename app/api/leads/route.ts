@@ -12,6 +12,18 @@ type Lead = {
   touched?: boolean;
 };
 
+function normalizeLeadStatus(status: unknown) {
+  const raw = String(status ?? "").trim();
+  const value = raw.toLowerCase();
+  if (!value) return "Yeni";
+  if (value === "new") return "Yeni";
+  if (value === "called") return "Arandı";
+  if (value === "no answer") return "Cevap Yok";
+  if (value === "waiting") return "Bekliyor";
+  if (value === "sold") return "Satıldı";
+  return raw;
+}
+
 async function getAllLeads() {
   await ensureLeadsTable();
   const result = await db.query(
@@ -41,6 +53,7 @@ export async function POST(request: NextRequest) {
       await client.query("BEGIN");
 
       for (const lead of leads) {
+        const status = normalizeLeadStatus(lead.status);
         await client.query(
           `INSERT INTO leads (id, name, company, phone, status, sales_person, notes, touched)
            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
@@ -52,7 +65,7 @@ export async function POST(request: NextRequest) {
              sales_person = EXCLUDED.sales_person,
              notes = EXCLUDED.notes,
              touched = COALESCE(leads.touched, EXCLUDED.touched, false)`,
-          [lead.id, lead.name, lead.company, lead.phone, lead.status, lead.salesPerson, lead.notes, lead.touched ?? false]
+          [lead.id, lead.name, lead.company, lead.phone, status, lead.salesPerson, lead.notes, lead.touched ?? false]
         );
       }
 
@@ -80,6 +93,7 @@ export async function PATCH(request: NextRequest) {
     }
 
     await ensureLeadsTable();
+    const status = normalizeLeadStatus(lead.status);
     await db.query(
       `INSERT INTO leads (id, name, company, phone, status, sales_person, notes, touched)
            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
@@ -91,10 +105,10 @@ export async function PATCH(request: NextRequest) {
              sales_person = EXCLUDED.sales_person,
              notes = EXCLUDED.notes,
              touched = EXCLUDED.touched`,
-      [lead.id, lead.name, lead.company, lead.phone, lead.status, lead.salesPerson, lead.notes, lead.touched ?? true]
+      [lead.id, lead.name, lead.company, lead.phone, status, lead.salesPerson, lead.notes, lead.touched ?? true]
     );
 
-    return NextResponse.json({ lead });
+    return NextResponse.json({ lead: { ...lead, status } });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Bilinmeyen bir sunucu hatası oluştu.";
     return NextResponse.json({ error: message }, { status: 500 });
