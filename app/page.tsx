@@ -143,20 +143,6 @@ export default function HomePage() {
           <span className="section-kicker">Lead operasyon merkezi</span>
           <h1>Lead Yönetimi</h1>
           <p>Personel seçerek leadlerinizi görüntüleyin, durum güncelleyin ve not ekleyin.</p>
-          <div className="page-hero-stats" aria-label="Seçili kapsam özeti">
-            <span>
-              <strong>{counts.total}</strong>
-              lead
-            </span>
-            <span>
-              <strong>{counts.called}</strong>
-              arandı
-            </span>
-            <span>
-              <strong>{counts.sold}</strong>
-              satış
-            </span>
-          </div>
         </div>
         <div className="person-selector-panel">
           <label htmlFor="sales-person">Personel seçiniz</label>
