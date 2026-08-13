@@ -17,7 +17,6 @@ export default function HomePage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedStatus, setSelectedStatus] = useState<string>("all");
   const [modalState, setModalState] = useState<EditModalState | null>(null);
-  const [isDeletingNoAnswer, setIsDeletingNoAnswer] = useState(false);
 
   useEffect(() => {
     const fetchLeads = async () => {
@@ -135,41 +134,6 @@ export default function HomePage() {
     );
     closeModal();
     await saveLeadToDb(updatedLead);
-  };
-
-  const deleteNoAnswerLeads = async () => {
-    const idsToDelete = personLeads
-      .filter((lead) => lead.status === "Cevap Yok")
-      .map((lead) => lead.id);
-
-    if (!idsToDelete.length || isDeletingNoAnswer) return;
-
-    const scopeText = currentPerson?.name ?? "tum satiscilar";
-    const confirmed = window.confirm(
-      `${scopeText} icin ${idsToDelete.length} adet cevap yok lead silinsin mi?`
-    );
-
-    if (!confirmed) return;
-
-    setIsDeletingNoAnswer(true);
-    try {
-      const response = await fetch("/api/leads", {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ids: idsToDelete }),
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to delete no answer leads");
-      }
-
-      setLeads((current) => current.filter((lead) => !idsToDelete.includes(lead.id)));
-    } catch (error) {
-      console.error(error);
-      window.alert("Cevap yok leadler silinemedi. Lutfen tekrar deneyin.");
-    } finally {
-      setIsDeletingNoAnswer(false);
-    }
   };
 
   return (
@@ -292,16 +256,7 @@ export default function HomePage() {
       </div>
 
       <div className="card" style={{ marginTop: 24 }}>
-        <div className="lead-list-toolbar">
-          <h2>Lead Listesi</h2>
-          <button
-            className="danger"
-            disabled={counts.noAnswer === 0 || isDeletingNoAnswer}
-            onClick={deleteNoAnswerLeads}
-          >
-            {isDeletingNoAnswer ? "Siliniyor..." : `Cevap Yoklari Sil (${counts.noAnswer})`}
-          </button>
-        </div>
+        <h2>Lead Listesi</h2>
         <div className="lead-list">
           {filteredLeads.map((lead) => (
             <div key={lead.id} className="lead-row-card">
