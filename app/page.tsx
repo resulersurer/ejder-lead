@@ -17,6 +17,7 @@ export default function HomePage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedStatus, setSelectedStatus] = useState<string>("all");
   const [modalState, setModalState] = useState<EditModalState | null>(null);
+  const [currentTime, setCurrentTime] = useState<Date | null>(null);
 
   useEffect(() => {
     const fetchLeads = async () => {
@@ -36,6 +37,14 @@ export default function HomePage() {
     };
 
     fetchLeads();
+  }, []);
+
+  useEffect(() => {
+    const updateTime = () => setCurrentTime(new Date());
+    updateTime();
+    const intervalId = window.setInterval(updateTime, 60_000);
+
+    return () => window.clearInterval(intervalId);
   }, []);
 
   const saveLeadToDb = async (lead: Lead) => {
@@ -114,6 +123,20 @@ export default function HomePage() {
       ? "İyi bir tempo var; düzenli takip satış ihtimalini güçlendirir."
       : "Bugünün ilk araması ekibin enerjisini başlatır; en üstteki yeni leadlerden başlayın.";
 
+  const formattedDate = currentTime
+    ? new Intl.DateTimeFormat("tr-TR", {
+        dateStyle: "full",
+        timeZone: "Europe/Istanbul",
+      }).format(currentTime)
+    : "Tarih yükleniyor";
+  const formattedTime = currentTime
+    ? new Intl.DateTimeFormat("tr-TR", {
+        hour: "2-digit",
+        minute: "2-digit",
+        timeZone: "Europe/Istanbul",
+      }).format(currentTime)
+    : "--:--";
+
   const openModal = (lead: Lead) => {
     setModalState({ lead, notes: lead.notes, status: lead.status });
   };
@@ -145,6 +168,11 @@ export default function HomePage() {
           <p>Personel seçerek leadlerinizi görüntüleyin, durum güncelleyin ve not ekleyin.</p>
         </div>
         <div className="person-selector-panel">
+          <div className="time-summary" aria-label="Güncel tarih ve saat">
+            <span>Bugün</span>
+            <strong>{formattedTime}</strong>
+            <p>{formattedDate}</p>
+          </div>
           <label htmlFor="sales-person">Personel seçiniz</label>
           <select
             id="sales-person"
