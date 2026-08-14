@@ -8,7 +8,10 @@ const navigationItems = [
   {
     href: "/dashboard",
     label: "Dashboard",
-    children: [{ href: "/dashboard/yanit-sureleri", label: "Yanıt Süreleri" }],
+    children: [
+      { href: "/dashboard/yanit-sureleri", label: "Yanıt Süreleri" },
+      { href: "/dashboard/lead-biten-satiscilar", label: "Lead Biten Satışçılar" },
+    ],
   },
   { href: "/upload", label: "Veri Yükle" },
 ];
