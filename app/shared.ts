@@ -9,6 +9,8 @@ export type Lead = {
   salesPerson: string;
   notes: string;
   touched?: boolean;
+  createdAt?: string;
+  statusUpdatedAt?: string | null;
 };
 
 export type SalesPerson = {

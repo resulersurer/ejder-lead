@@ -11,6 +11,40 @@ type EditModalState = {
   status: Lead["status"];
 };
 
+const formatLeadDateTime = (value?: string | null) => {
+  if (!value) return "Henüz yok";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "Geçersiz tarih";
+
+  return new Intl.DateTimeFormat("tr-TR", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: "Europe/Istanbul",
+  }).format(date);
+};
+
+const formatLeadResponseDuration = (lead: Lead) => {
+  if (!lead.createdAt || !lead.statusUpdatedAt) return "Henüz durum değişmedi";
+
+  const createdAt = new Date(lead.createdAt).getTime();
+  const statusUpdatedAt = new Date(lead.statusUpdatedAt).getTime();
+  if (Number.isNaN(createdAt) || Number.isNaN(statusUpdatedAt)) return "Süre hesaplanamadı";
+
+  const minutes = Math.max(0, Math.round((statusUpdatedAt - createdAt) / 60000));
+  if (minutes < 60) return `${minutes} dk`;
+
+  const hours = Math.floor(minutes / 60);
+  const remainingMinutes = minutes % 60;
+  if (hours < 24) return remainingMinutes ? `${hours} sa ${remainingMinutes} dk` : `${hours} sa`;
+
+  const days = Math.floor(hours / 24);
+  const remainingHours = hours % 24;
+  return remainingHours ? `${days} gün ${remainingHours} sa` : `${days} gün`;
+};
+
 export default function HomePage() {
   const [currentPersonId, setCurrentPersonId] = useState<string>("all");
   const [leads, setLeads] = useState<Lead[]>(initialLeads);
@@ -57,8 +91,11 @@ export default function HomePage() {
       if (!response.ok) {
         throw new Error("Failed to save lead");
       }
+      const data = await response.json();
+      return data.lead as Lead;
     } catch (error) {
       console.error(error);
+      return null;
     }
   };
 
@@ -146,17 +183,24 @@ export default function HomePage() {
   const saveLead = async () => {
     if (!modalState?.lead) return;
 
+    const statusChanged = modalState.lead.status !== modalState.status;
     const updatedLead = {
       ...modalState.lead,
       status: modalState.status,
       notes: modalState.notes,
       touched: true,
+      statusUpdatedAt: statusChanged ? new Date().toISOString() : modalState.lead.statusUpdatedAt,
     };
     setLeads((current) =>
       current.map((lead) => (lead.id === updatedLead.id ? updatedLead : lead))
     );
     closeModal();
-    await saveLeadToDb(updatedLead);
+    const savedLead = await saveLeadToDb(updatedLead);
+    if (savedLead) {
+      setLeads((current) =>
+        current.map((lead) => (lead.id === savedLead.id ? savedLead : lead))
+      );
+    }
   };
 
   return (
@@ -319,6 +363,21 @@ export default function HomePage() {
                     {lead.status}
                   </span>
                 </div>
+              </div>
+
+              <div className="lead-timing-row">
+                <span>
+                  <strong>Yüklendi</strong>
+                  {formatLeadDateTime(lead.createdAt)}
+                </span>
+                <span>
+                  <strong>Durum değişti</strong>
+                  {formatLeadDateTime(lead.statusUpdatedAt)}
+                </span>
+                <span>
+                  <strong>Yanıt süresi</strong>
+                  {formatLeadResponseDuration(lead)}
+                </span>
               </div>
 
               <div className="lead-row-footer">

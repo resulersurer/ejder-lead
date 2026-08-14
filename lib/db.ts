@@ -75,6 +75,7 @@ export async function ensureLeadsTable() {
       sales_person TEXT,
       notes TEXT,
       touched BOOLEAN NOT NULL DEFAULT FALSE,
+      status_updated_at TIMESTAMPTZ,
       created_at TIMESTAMPTZ DEFAULT NOW()
     );
   `);
@@ -82,6 +83,11 @@ export async function ensureLeadsTable() {
   await db.query(`
     ALTER TABLE leads
     ADD COLUMN IF NOT EXISTS touched BOOLEAN NOT NULL DEFAULT FALSE;
+  `);
+
+  await db.query(`
+    ALTER TABLE leads
+    ADD COLUMN IF NOT EXISTS status_updated_at TIMESTAMPTZ;
   `);
 
   await db.query(`

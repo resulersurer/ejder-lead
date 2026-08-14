@@ -10,6 +10,8 @@ type Lead = {
   salesPerson: string;
   notes: string;
   touched?: boolean;
+  createdAt?: string;
+  statusUpdatedAt?: string | null;
 };
 
 function normalizeLeadStatus(status: unknown) {
@@ -33,7 +35,19 @@ function normalizeLeadStatus(status: unknown) {
 async function getAllLeads() {
   await ensureLeadsTable();
   const result = await db.query(
-    `SELECT id, name, company, phone, status, sales_person AS "salesPerson", notes, touched FROM leads ORDER BY touched ASC, created_at`
+    `SELECT
+       id,
+       name,
+       company,
+       phone,
+       status,
+       sales_person AS "salesPerson",
+       notes,
+       touched,
+       created_at AS "createdAt",
+       status_updated_at AS "statusUpdatedAt"
+     FROM leads
+     ORDER BY touched ASC, created_at`
   );
   return result.rows as Lead[];
 }
@@ -100,9 +114,9 @@ export async function PATCH(request: NextRequest) {
 
     await ensureLeadsTable();
     const status = normalizeLeadStatus(lead.status);
-    await db.query(
-      `INSERT INTO leads (id, name, company, phone, status, sales_person, notes, touched)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+    const result = await db.query(
+      `INSERT INTO leads (id, name, company, phone, status, sales_person, notes, touched, status_updated_at)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW())
            ON CONFLICT (id) DO UPDATE SET
              name = EXCLUDED.name,
              company = EXCLUDED.company,
@@ -110,11 +124,26 @@ export async function PATCH(request: NextRequest) {
              status = EXCLUDED.status,
              sales_person = EXCLUDED.sales_person,
              notes = EXCLUDED.notes,
-             touched = EXCLUDED.touched`,
+             touched = EXCLUDED.touched,
+             status_updated_at = CASE
+               WHEN leads.status IS DISTINCT FROM EXCLUDED.status THEN NOW()
+               ELSE leads.status_updated_at
+             END
+           RETURNING
+             id,
+             name,
+             company,
+             phone,
+             status,
+             sales_person AS "salesPerson",
+             notes,
+             touched,
+             created_at AS "createdAt",
+             status_updated_at AS "statusUpdatedAt"`,
       [lead.id, lead.name, lead.company, lead.phone, status, lead.salesPerson, lead.notes, lead.touched ?? true]
     );
 
-    return NextResponse.json({ lead: { ...lead, status } });
+    return NextResponse.json({ lead: result.rows[0] });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Bilinmeyen bir sunucu hatası oluştu.";
     return NextResponse.json({ error: message }, { status: 500 });
