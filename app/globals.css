@@ -805,6 +805,37 @@ textarea {
   padding: 10px 0;
 }
 
+.response-chart-guide {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.response-chart-guide div {
+  padding: 12px;
+  border: 1px solid #dbeafe;
+  border-radius: 10px;
+  background: #f8fbff;
+}
+
+.response-chart-guide strong,
+.response-chart-guide span {
+  display: block;
+}
+
+.response-chart-guide strong {
+  color: #1e3a8a;
+  font-size: 13px;
+}
+
+.response-chart-guide span {
+  margin-top: 6px;
+  color: #64748b;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
 .response-line-chart svg {
   display: block;
   width: 100%;
@@ -815,6 +846,12 @@ textarea {
 .response-line-axis {
   stroke: #cbd5e1;
   stroke-width: 2;
+}
+
+.response-axis-label {
+  fill: #64748b;
+  font-size: 13px;
+  font-weight: 800;
 }
 
 .response-line-path {
@@ -1047,6 +1084,10 @@ textarea {
   .response-person-header,
   .response-person-stats {
     flex-direction: column;
+  }
+
+  .response-chart-guide {
+    grid-template-columns: 1fr;
   }
 
   .stock-alert-row {

@@ -35,7 +35,32 @@ type PersonnelDailyResponseSeries = {
 
 const formatPercent = (value: number) => `%${value.toFixed(1).replace(".", ",")}`;
 
-const trendColors = ["#2563eb", "#10b981", "#f59e0b", "#ec4899", "#7c3aed", "#0f766e"];
+const trendColors = [
+  "#2563eb",
+  "#10b981",
+  "#f59e0b",
+  "#ec4899",
+  "#7c3aed",
+  "#0f766e",
+  "#dc2626",
+  "#0891b2",
+  "#84cc16",
+  "#9333ea",
+  "#ea580c",
+  "#14b8a6",
+  "#4f46e5",
+  "#be123c",
+  "#65a30d",
+  "#0284c7",
+  "#a855f7",
+  "#ca8a04",
+  "#db2777",
+  "#16a34a",
+  "#64748b",
+  "#991b1b",
+  "#0369a1",
+  "#854d0e",
+];
 
 const formatDuration = (minutes: number) => {
   if (!Number.isFinite(minutes)) return "-";
@@ -261,7 +286,6 @@ export default function ResponseTimesPage() {
           left.averageMinutes - right.averageMinutes ||
           left.name.localeCompare(right.name, "tr")
       )
-      .slice(0, 6)
       .map((series, index) => ({ ...series, color: trendColors[index % trendColors.length] }));
   }, [responseLeads]);
 
@@ -429,8 +453,39 @@ export default function ResponseTimesPage() {
 
         {personnelDailyTrend.length > 0 ? (
           <>
+            <div className="response-chart-guide" aria-label="Grafik açıklaması">
+              <div>
+                <strong>X ekseni</strong>
+                <span>Durum değiştirilen günleri gösterir.</span>
+              </div>
+              <div>
+                <strong>Y ekseni</strong>
+                <span>Ortalama yanıt süresini gösterir; aşağı indikçe performans hızlanır.</span>
+              </div>
+              <div>
+                <strong>Renkli çizgi ve noktalar</strong>
+                <span>Her renk bir personeli, noktalar o personelin ilgili gündeki ortalama süresini gösterir.</span>
+              </div>
+            </div>
+
             <div className="response-line-chart" aria-label="Personel bazlı günlük ortalama yanıt süresi çizgi grafiği">
               <svg viewBox={`0 0 ${trendChartWidth} ${trendChartHeight}`} role="img">
+                <text
+                  x={trendPadding - 14}
+                  y={trendPadding - 10}
+                  textAnchor="middle"
+                  className="response-axis-label"
+                >
+                  Süre
+                </text>
+                <text
+                  x={trendChartWidth - trendPadding}
+                  y={trendChartHeight - 8}
+                  textAnchor="end"
+                  className="response-axis-label"
+                >
+                  Gün
+                </text>
                 <line
                   x1={trendPadding}
                   y1={trendPadding}
