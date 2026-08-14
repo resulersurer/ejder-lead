@@ -5,7 +5,11 @@ import { usePathname } from "next/navigation";
 
 const navigationItems = [
   { href: "/", label: "Lead Listesi" },
-  { href: "/dashboard", label: "Dashboard" },
+  {
+    href: "/dashboard",
+    label: "Dashboard",
+    children: [{ href: "/dashboard/yanit-sureleri", label: "Yanıt Süreleri" }],
+  },
   { href: "/upload", label: "Veri Yükle" },
 ];
 
@@ -23,17 +27,37 @@ export default function Navigation() {
         </div>
         <div className="top-nav-links">
           {navigationItems.map((item) => {
-            const isActive = pathname === item.href;
+            const isActive =
+              pathname === item.href || Boolean(item.children?.some((child) => pathname === child.href));
 
             return (
-              <Link
-                key={item.href}
-                href={item.href}
-                aria-current={isActive ? "page" : undefined}
-                className={isActive ? "top-nav-link active" : "top-nav-link"}
-              >
-                {item.label}
-              </Link>
+              <div key={item.href} className="top-nav-item">
+                <Link
+                  href={item.href}
+                  aria-current={pathname === item.href ? "page" : undefined}
+                  className={isActive ? "top-nav-link active" : "top-nav-link"}
+                >
+                  {item.label}
+                </Link>
+                {item.children && (
+                  <div className="top-nav-submenu">
+                    {item.children.map((child) => {
+                      const childIsActive = pathname === child.href;
+
+                      return (
+                        <Link
+                          key={child.href}
+                          href={child.href}
+                          aria-current={childIsActive ? "page" : undefined}
+                          className={childIsActive ? "top-nav-submenu-link active" : "top-nav-submenu-link"}
+                        >
+                          {child.label}
+                        </Link>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
             );
           })}
         </div>
