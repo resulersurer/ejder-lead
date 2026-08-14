@@ -25,7 +25,17 @@ type DailyResponseTrend = {
   count: number;
 };
 
+type PersonnelDailyResponseSeries = {
+  name: string;
+  color: string;
+  averageMinutes: number;
+  totalResponses: number;
+  points: DailyResponseTrend[];
+};
+
 const formatPercent = (value: number) => `%${value.toFixed(1).replace(".", ",")}`;
+
+const trendColors = ["#2563eb", "#10b981", "#f59e0b", "#ec4899", "#7c3aed", "#0f766e"];
 
 const formatDuration = (minutes: number) => {
   if (!Number.isFinite(minutes)) return "-";
@@ -201,51 +211,90 @@ export default function ResponseTimesPage() {
     [responseLeads]
   );
 
-  const dailyTrend = useMemo<DailyResponseTrend[]>(() => {
-    const grouped = new Map<string, { totalMinutes: number; count: number }>();
+  const personnelDailyTrend = useMemo<PersonnelDailyResponseSeries[]>(() => {
+    const grouped = new Map<string, Map<string, { totalMinutes: number; count: number }>>();
+    const totals = new Map<string, { totalMinutes: number; count: number }>();
 
     for (const lead of responseLeads) {
       if (!lead.statusUpdatedAt) continue;
       const dayKey = getIstanbulDayKey(lead.statusUpdatedAt);
       if (!dayKey) continue;
 
-      const current = grouped.get(dayKey) ?? { totalMinutes: 0, count: 0 };
-      current.totalMinutes += lead.responseMinutes;
-      current.count += 1;
-      grouped.set(dayKey, current);
+      const personDays =
+        grouped.get(lead.salesPerson) ?? new Map<string, { totalMinutes: number; count: number }>();
+      const currentDay = personDays.get(dayKey) ?? { totalMinutes: 0, count: 0 };
+      currentDay.totalMinutes += lead.responseMinutes;
+      currentDay.count += 1;
+      personDays.set(dayKey, currentDay);
+      grouped.set(lead.salesPerson, personDays);
+
+      const currentTotal = totals.get(lead.salesPerson) ?? { totalMinutes: 0, count: 0 };
+      currentTotal.totalMinutes += lead.responseMinutes;
+      currentTotal.count += 1;
+      totals.set(lead.salesPerson, currentTotal);
     }
 
     return Array.from(grouped.entries())
-      .map(([key, item]) => ({
-        key,
-        label: formatDayLabel(key),
-        averageMinutes: item.count ? item.totalMinutes / item.count : 0,
-        count: item.count,
-      }))
-      .sort((left, right) => left.key.localeCompare(right.key));
+      .map(([name, dayMap], index): PersonnelDailyResponseSeries => {
+        const total = totals.get(name) ?? { totalMinutes: 0, count: 0 };
+        const points = Array.from(dayMap.entries())
+          .map(([key, item]) => ({
+            key,
+            label: formatDayLabel(key),
+            averageMinutes: item.count ? item.totalMinutes / item.count : 0,
+            count: item.count,
+          }))
+          .sort((left, right) => left.key.localeCompare(right.key));
+
+        return {
+          name,
+          color: trendColors[index % trendColors.length],
+          averageMinutes: total.count ? total.totalMinutes / total.count : 0,
+          totalResponses: total.count,
+          points,
+        };
+      })
+      .filter((series) => series.totalResponses > 0)
+      .sort(
+        (left, right) =>
+          right.totalResponses - left.totalResponses ||
+          left.averageMinutes - right.averageMinutes ||
+          left.name.localeCompare(right.name, "tr")
+      )
+      .slice(0, 6)
+      .map((series, index) => ({ ...series, color: trendColors[index % trendColors.length] }));
   }, [responseLeads]);
 
   const maxAverageMinutes = Math.max(...salespersonStats.map((item) => item.averageMinutes), 1);
   const maxBucketCount = Math.max(...buckets.map((item) => item.count), 1);
-  const maxDailyAverageMinutes = Math.max(...dailyTrend.map((item) => item.averageMinutes), 1);
+  const trendDays = Array.from(
+    new Set(personnelDailyTrend.flatMap((series) => series.points.map((point) => point.key)))
+  ).sort((left, right) => left.localeCompare(right));
+  const maxDailyAverageMinutes = Math.max(
+    ...personnelDailyTrend.flatMap((series) => series.points.map((point) => point.averageMinutes)),
+    1
+  );
   const trendChartWidth = 720;
   const trendChartHeight = 260;
   const trendPadding = 32;
   const trendInnerWidth = trendChartWidth - trendPadding * 2;
   const trendInnerHeight = trendChartHeight - trendPadding * 2;
-  const trendPoints = dailyTrend.map((item, index) => {
-    const x =
-      dailyTrend.length === 1
-        ? trendChartWidth / 2
-        : trendPadding + (index / (dailyTrend.length - 1)) * trendInnerWidth;
-    const y =
-      trendPadding +
-      trendInnerHeight -
-      (item.averageMinutes / maxDailyAverageMinutes) * trendInnerHeight;
+  const trendSeriesPoints = personnelDailyTrend.map((series) => ({
+    ...series,
+    chartPoints: series.points.map((point) => {
+      const dayIndex = Math.max(0, trendDays.indexOf(point.key));
+      const x =
+        trendDays.length === 1
+          ? trendChartWidth / 2
+          : trendPadding + (dayIndex / (trendDays.length - 1)) * trendInnerWidth;
+      const y =
+        trendPadding +
+        trendInnerHeight -
+        (point.averageMinutes / maxDailyAverageMinutes) * trendInnerHeight;
 
-    return { ...item, x, y };
-  });
-  const trendPolylinePoints = trendPoints.map((point) => `${point.x},${point.y}`).join(" ");
+      return { ...point, x, y };
+    }),
+  }));
 
   return (
     <main className="container">
@@ -370,17 +419,17 @@ export default function ResponseTimesPage() {
       <div className="card" style={{ marginTop: 24 }}>
         <div className="response-trend-header">
           <div>
-            <h2>Gün Gün Ortalama Yanıt Süresi</h2>
+            <h2>Personel Bazlı Günlük Yanıt Performansı</h2>
             <p className="muted-text">
-              Durum değişim tarihine göre her günün ortalama yanıt süresi hesaplanır.
+              Yanıt verisi en güçlü personelin günlük ortalama süreleri karşılaştırılır.
             </p>
           </div>
-          <span className="performance-rate-badge">{dailyTrend.length} gün</span>
+          <span className="performance-rate-badge">{personnelDailyTrend.length} personel</span>
         </div>
 
-        {dailyTrend.length > 0 ? (
+        {personnelDailyTrend.length > 0 ? (
           <>
-            <div className="response-line-chart" aria-label="Gün gün ortalama yanıt süresi çizgi grafiği">
+            <div className="response-line-chart" aria-label="Personel bazlı günlük ortalama yanıt süresi çizgi grafiği">
               <svg viewBox={`0 0 ${trendChartWidth} ${trendChartHeight}`} role="img">
                 <line
                   x1={trendPadding}
@@ -396,31 +445,52 @@ export default function ResponseTimesPage() {
                   y2={trendChartHeight - trendPadding}
                   className="response-line-axis"
                 />
-                <polyline points={trendPolylinePoints} className="response-line-path" />
-                {trendPoints.map((point) => (
-                  <g key={point.key}>
-                    <circle cx={point.x} cy={point.y} r="6" className="response-line-point" />
-                    <text x={point.x} y={Math.max(18, point.y - 14)} textAnchor="middle" className="response-line-value">
-                      {formatDuration(point.averageMinutes)}
-                    </text>
+                {trendSeriesPoints.map((series) => (
+                  <g key={series.name}>
+                    <polyline
+                      points={series.chartPoints.map((point) => `${point.x},${point.y}`).join(" ")}
+                      className="response-line-path"
+                      style={{ stroke: series.color }}
+                    />
+                    {series.chartPoints.map((point) => (
+                      <circle
+                        key={`${series.name}-${point.key}`}
+                        cx={point.x}
+                        cy={point.y}
+                        r="5"
+                        className="response-line-point"
+                        style={{ stroke: series.color }}
+                      >
+                        <title>
+                          {series.name}: {point.label} - {formatDuration(point.averageMinutes)} / {point.count} lead
+                        </title>
+                      </circle>
+                    ))}
                   </g>
                 ))}
               </svg>
             </div>
 
-            <div className="response-trend-labels">
-              {trendPoints.map((point) => (
-                <div key={point.key}>
-                  <strong>{point.label}</strong>
+            <div className="response-line-day-labels">
+              {trendDays.map((day) => (
+                <span key={day}>{formatDayLabel(day)}</span>
+              ))}
+            </div>
+
+            <div className="response-line-legend">
+              {personnelDailyTrend.map((series) => (
+                <div key={series.name} className="response-line-legend-item">
+                  <span className="response-line-dot" style={{ backgroundColor: series.color }} />
+                  <strong>{series.name}</strong>
                   <span>
-                    {formatDuration(point.averageMinutes)} • {point.count} lead
+                    Ortalama {formatDuration(series.averageMinutes)} • {series.totalResponses} yanıt
                   </span>
                 </div>
               ))}
             </div>
           </>
         ) : (
-          <div className="lead-empty-state">Günlük grafik için henüz yanıt süresi verisi yok.</div>
+          <div className="lead-empty-state">Personel bazlı grafik için henüz yanıt süresi verisi yok.</div>
         )}
       </div>
     </main>
