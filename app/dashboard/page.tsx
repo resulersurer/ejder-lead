@@ -131,7 +131,7 @@ export default function DashboardPage() {
       <div className="header">
         <div>
           <h1>Satış Dashboard</h1>
-          <p>Tüm lead verilerini grafiklerle inceleyin, satışçı performansını ve durum dağılımını tek ekranda görün.</p>
+          <p>Tüm lead verilerini grafiklerle inceleyin, personel performansını ve durum dağılımını tek ekranda görün.</p>
         </div>
       </div>
 
@@ -188,10 +188,10 @@ export default function DashboardPage() {
         </div>
 
         <div className="card">
-          <h2>Satışçı Performansı</h2>
+          <h2>Personel Performansı</h2>
           {bestPerformer && (
             <div className="performance-highlight">
-              <span className="performance-highlight-label">Öne Çıkan Satışçı</span>
+              <span className="performance-highlight-label">Öne Çıkan Personel</span>
               <strong className="performance-highlight-name">{bestPerformer.name}</strong>
               <p className="chart-note">
                 {bestPerformer.total} lead içinde {bestPerformer.sold} satış yaptı. Dönüşüm oranı{" "}
@@ -229,14 +229,14 @@ export default function DashboardPage() {
                 </div>
               </div>
             ))}
-            {topSalesPeople.length === 0 && <p className="muted-text">Gösterilecek satışçı verisi yok.</p>}
+            {topSalesPeople.length === 0 && <p className="muted-text">Gösterilecek personel verisi yok.</p>}
           </div>
         </div>
       </div>
 
       <div className="grid" style={{ marginTop: 24 }}>
         <div className="card">
-          <h2>Satışçı Yorumları</h2>
+          <h2>Personel Yorumları</h2>
           <div className="insight-list">
             {salespersonInsights.map((item) => (
               <div key={item.name} className="insight-card">
@@ -250,17 +250,17 @@ export default function DashboardPage() {
                 <p className="muted-text">{item.comment}</p>
               </div>
             ))}
-            {salespersonInsights.length === 0 && <p className="muted-text">Yorum üretilecek satışçı verisi yok.</p>}
+            {salespersonInsights.length === 0 && <p className="muted-text">Yorum üretilecek personel verisi yok.</p>}
           </div>
         </div>
 
         <div className="card">
           <h2>Genel Yönetici Notu</h2>
           <p className="muted-text">
-            Bu alan satışçı performansına göre otomatik yorum üretir. Dönüşüm oranı yükseldikçe yorumlar daha güçlü, takip ihtiyacı arttıkça yorumlar daha yönlendirici hale gelir.
+            Bu alan personel performansına göre otomatik yorum üretir. Dönüşüm oranı yükseldikçe yorumlar daha güçlü, takip ihtiyacı arttıkça yorumlar daha yönlendirici hale gelir.
           </p>
           <p className="muted-text">
-            Özellikle <strong>Satıldı</strong> oranı yüksek satışçılar örnek alınabilir; satış üretmeyen ama yoğun lead yöneten ekip üyeleri için ise hızlı aksiyon planı oluşturmak faydalı olur.
+            Özellikle <strong>Satıldı</strong> oranı yüksek personel örnek alınabilir; satış üretmeyen ama yoğun lead yöneten ekip üyeleri için ise hızlı aksiyon planı oluşturmak faydalı olur.
           </p>
         </div>
       </div>

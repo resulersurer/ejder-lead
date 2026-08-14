@@ -223,14 +223,14 @@ export default function HomePage() {
             value={currentPersonId}
             onChange={(event) => setCurrentPersonId(event.target.value)}
           >
-            <option value="all">Tüm satışçılar</option>
+            <option value="all">Tüm personel</option>
             {salesPeople.map((person) => (
               <option key={person.id} value={person.id}>
                 {person.name}
               </option>
             ))}
           </select>
-          <p>{currentPerson?.name ?? "Tüm satışçılar"} kapsamı görüntüleniyor.</p>
+          <p>{currentPerson?.name ?? "Tüm personel"} kapsamı görüntüleniyor.</p>
         </div>
       </div>
 
@@ -240,7 +240,7 @@ export default function HomePage() {
             <div>
               <h2>Günün Performans Ekranı</h2>
               <p className="hero-text">
-                Seçili satışçı: <strong>{currentPerson?.name ?? "Tüm satışçılar"}</strong>
+                Seçili personel: <strong>{currentPerson?.name ?? "Tüm personel"}</strong>
               </p>
             </div>
             <div className="hero-badge">Motivasyon Yüksek</div>

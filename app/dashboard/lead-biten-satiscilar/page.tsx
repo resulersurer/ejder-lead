@@ -109,9 +109,9 @@ export default function FinishedLeadsPage() {
     <main className="container">
       <div className="header">
         <div>
-          <h1>Lead Biten Satışçılar</h1>
+          <h1>Lead Biten Personel</h1>
           <p>
-            Satışçıların elinde kaç yeni lead kaldığını görün; leadi biten veya azalan kişilere yeniden dağıtım planı
+            Personelin elinde kaç yeni lead kaldığını görün; leadi biten veya azalan kişilere yeniden dağıtım planı
             yapın.
           </p>
         </div>
@@ -119,11 +119,11 @@ export default function FinishedLeadsPage() {
 
       <div className="grid dashboard-summary-grid">
         <div className="card metric-card">
-          <span className="metric-label">Lead Biten Satışçı</span>
+          <span className="metric-label">Lead Biten Personel</span>
           <strong className="metric-value">{finishedPeople.length}</strong>
         </div>
         <div className="card metric-card">
-          <span className="metric-label">Az Kalan Satışçı</span>
+          <span className="metric-label">Az Kalan Personel</span>
           <strong className="metric-value">{lowPeople.length}</strong>
         </div>
         <div className="card metric-card">
@@ -131,7 +131,7 @@ export default function FinishedLeadsPage() {
           <strong className="metric-value">{totalNewLeads}</strong>
         </div>
         <div className="card metric-card">
-          <span className="metric-label">Aktif Satışçı</span>
+          <span className="metric-label">Aktif Personel</span>
           <strong className="metric-value">{activePeople.length}</strong>
         </div>
       </div>
@@ -156,7 +156,7 @@ export default function FinishedLeadsPage() {
               );
             })}
             {finishedPeople.length + lowPeople.length === 0 && (
-              <p className="muted-text">Şu an leadi biten veya kritik seviyeye düşen satışçı yok.</p>
+              <p className="muted-text">Şu an leadi biten veya kritik seviyeye düşen personel yok.</p>
             )}
           </div>
         </div>
@@ -172,14 +172,14 @@ export default function FinishedLeadsPage() {
             ))}
           </div>
           <p className="muted-text">
-            Bu sayfada “lead bitti” hesabı, satışçının elindeki <strong>Yeni</strong> durumundaki lead sayısına göre
+            Bu sayfada “lead bitti” hesabı, personelin elindeki <strong>Yeni</strong> durumundaki lead sayısına göre
             yapılır.
           </p>
         </div>
       </div>
 
       <div className="card" style={{ marginTop: 24 }}>
-        <h2>Satışçı Lead Stoğu</h2>
+        <h2>Personel Lead Stoğu</h2>
         <div className="response-table">
           {salespersonStocks.map((person) => {
             const tone = getStatusTone(person.status);

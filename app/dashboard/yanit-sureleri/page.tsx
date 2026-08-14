@@ -250,14 +250,14 @@ export default function ResponseTimesPage() {
             </div>
           </div>
           <p className="muted-text">
-            Ortalama süre düştükçe lead sıcaklığı korunur. Yanıt oranı düşük satışçılarda önce durum güncelleme
+            Ortalama süre düştükçe lead sıcaklığı korunur. Yanıt oranı düşük personelde önce durum güncelleme
             alışkanlığını kontrol etmek faydalı olur.
           </p>
         </div>
       </div>
 
       <div className="card" style={{ marginTop: 24 }}>
-        <h2>Satışçı Bazlı Yanıt Süresi</h2>
+        <h2>Personel Bazlı Yanıt Süresi</h2>
         <div className="response-table">
           {salespersonStats.map((item) => (
             <div key={item.name} className="response-person-row">
@@ -283,7 +283,7 @@ export default function ResponseTimesPage() {
               </div>
             </div>
           ))}
-          {salespersonStats.length === 0 && <p className="muted-text">Gösterilecek satışçı verisi yok.</p>}
+          {salespersonStats.length === 0 && <p className="muted-text">Gösterilecek personel verisi yok.</p>}
         </div>
       </div>
     </main>
