@@ -18,6 +18,13 @@ type SalesPersonResponseStats = {
   sold: number;
 };
 
+type DailyResponseTrend = {
+  key: string;
+  label: string;
+  averageMinutes: number;
+  count: number;
+};
+
 const formatPercent = (value: number) => `%${value.toFixed(1).replace(".", ",")}`;
 
 const formatDuration = (minutes: number) => {
@@ -42,6 +49,36 @@ const getResponseMinutes = (lead: Lead) => {
 
   if (Number.isNaN(createdAt) || Number.isNaN(statusUpdatedAt)) return null;
   return Math.max(0, (statusUpdatedAt - createdAt) / 60000);
+};
+
+const getIstanbulDayKey = (value: string) => {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+
+  const parts = new Intl.DateTimeFormat("tr-TR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    timeZone: "Europe/Istanbul",
+  }).formatToParts(date);
+
+  const day = parts.find((part) => part.type === "day")?.value;
+  const month = parts.find((part) => part.type === "month")?.value;
+  const year = parts.find((part) => part.type === "year")?.value;
+
+  if (!day || !month || !year) return null;
+  return `${year}-${month}-${day}`;
+};
+
+const formatDayLabel = (key: string) => {
+  const [year, month, day] = key.split("-").map(Number);
+  if (!year || !month || !day) return key;
+
+  return new Intl.DateTimeFormat("tr-TR", {
+    day: "2-digit",
+    month: "short",
+    timeZone: "Europe/Istanbul",
+  }).format(new Date(Date.UTC(year, month - 1, day, 12)));
 };
 
 export default function ResponseTimesPage() {
@@ -164,8 +201,51 @@ export default function ResponseTimesPage() {
     [responseLeads]
   );
 
+  const dailyTrend = useMemo<DailyResponseTrend[]>(() => {
+    const grouped = new Map<string, { totalMinutes: number; count: number }>();
+
+    for (const lead of responseLeads) {
+      if (!lead.statusUpdatedAt) continue;
+      const dayKey = getIstanbulDayKey(lead.statusUpdatedAt);
+      if (!dayKey) continue;
+
+      const current = grouped.get(dayKey) ?? { totalMinutes: 0, count: 0 };
+      current.totalMinutes += lead.responseMinutes;
+      current.count += 1;
+      grouped.set(dayKey, current);
+    }
+
+    return Array.from(grouped.entries())
+      .map(([key, item]) => ({
+        key,
+        label: formatDayLabel(key),
+        averageMinutes: item.count ? item.totalMinutes / item.count : 0,
+        count: item.count,
+      }))
+      .sort((left, right) => left.key.localeCompare(right.key));
+  }, [responseLeads]);
+
   const maxAverageMinutes = Math.max(...salespersonStats.map((item) => item.averageMinutes), 1);
   const maxBucketCount = Math.max(...buckets.map((item) => item.count), 1);
+  const maxDailyAverageMinutes = Math.max(...dailyTrend.map((item) => item.averageMinutes), 1);
+  const trendChartWidth = 720;
+  const trendChartHeight = 260;
+  const trendPadding = 32;
+  const trendInnerWidth = trendChartWidth - trendPadding * 2;
+  const trendInnerHeight = trendChartHeight - trendPadding * 2;
+  const trendPoints = dailyTrend.map((item, index) => {
+    const x =
+      dailyTrend.length === 1
+        ? trendChartWidth / 2
+        : trendPadding + (index / (dailyTrend.length - 1)) * trendInnerWidth;
+    const y =
+      trendPadding +
+      trendInnerHeight -
+      (item.averageMinutes / maxDailyAverageMinutes) * trendInnerHeight;
+
+    return { ...item, x, y };
+  });
+  const trendPolylinePoints = trendPoints.map((point) => `${point.x},${point.y}`).join(" ");
 
   return (
     <main className="container">
@@ -285,6 +365,63 @@ export default function ResponseTimesPage() {
           ))}
           {salespersonStats.length === 0 && <p className="muted-text">Gösterilecek personel verisi yok.</p>}
         </div>
+      </div>
+
+      <div className="card" style={{ marginTop: 24 }}>
+        <div className="response-trend-header">
+          <div>
+            <h2>Gün Gün Ortalama Yanıt Süresi</h2>
+            <p className="muted-text">
+              Durum değişim tarihine göre her günün ortalama yanıt süresi hesaplanır.
+            </p>
+          </div>
+          <span className="performance-rate-badge">{dailyTrend.length} gün</span>
+        </div>
+
+        {dailyTrend.length > 0 ? (
+          <>
+            <div className="response-line-chart" aria-label="Gün gün ortalama yanıt süresi çizgi grafiği">
+              <svg viewBox={`0 0 ${trendChartWidth} ${trendChartHeight}`} role="img">
+                <line
+                  x1={trendPadding}
+                  y1={trendPadding}
+                  x2={trendPadding}
+                  y2={trendChartHeight - trendPadding}
+                  className="response-line-axis"
+                />
+                <line
+                  x1={trendPadding}
+                  y1={trendChartHeight - trendPadding}
+                  x2={trendChartWidth - trendPadding}
+                  y2={trendChartHeight - trendPadding}
+                  className="response-line-axis"
+                />
+                <polyline points={trendPolylinePoints} className="response-line-path" />
+                {trendPoints.map((point) => (
+                  <g key={point.key}>
+                    <circle cx={point.x} cy={point.y} r="6" className="response-line-point" />
+                    <text x={point.x} y={Math.max(18, point.y - 14)} textAnchor="middle" className="response-line-value">
+                      {formatDuration(point.averageMinutes)}
+                    </text>
+                  </g>
+                ))}
+              </svg>
+            </div>
+
+            <div className="response-trend-labels">
+              {trendPoints.map((point) => (
+                <div key={point.key}>
+                  <strong>{point.label}</strong>
+                  <span>
+                    {formatDuration(point.averageMinutes)} • {point.count} lead
+                  </span>
+                </div>
+              ))}
+            </div>
+          </>
+        ) : (
+          <div className="lead-empty-state">Günlük grafik için henüz yanıt süresi verisi yok.</div>
+        )}
       </div>
     </main>
   );
