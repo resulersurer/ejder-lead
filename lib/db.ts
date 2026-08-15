@@ -1,4 +1,5 @@
 import { Pool } from "pg";
+import { fallbackTeamMessages } from "../app/teamMessages";
 
 declare global {
   // eslint-disable-next-line no-var
@@ -163,4 +164,52 @@ export async function ensureLeadsTable() {
     FROM assignments
     WHERE leads.id = assignments.id;
   `);
+}
+
+export async function ensureTeamMessagesTable() {
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS team_messages (
+      id TEXT PRIMARY KEY,
+      quote TEXT NOT NULL,
+      author TEXT NOT NULL,
+      theme TEXT,
+      active BOOLEAN NOT NULL DEFAULT TRUE,
+      priority INTEGER NOT NULL DEFAULT 0,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    );
+  `);
+
+  await db.query(`
+    ALTER TABLE team_messages
+    ADD COLUMN IF NOT EXISTS active BOOLEAN NOT NULL DEFAULT TRUE;
+  `);
+
+  await db.query(`
+    ALTER TABLE team_messages
+    ADD COLUMN IF NOT EXISTS priority INTEGER NOT NULL DEFAULT 0;
+  `);
+
+  const existing = await db.query("SELECT COUNT(*)::INT AS count FROM team_messages");
+  if ((existing.rows[0]?.count ?? 0) > 0) return;
+
+  const client = await db.connect();
+  try {
+    await client.query("BEGIN");
+
+    for (const [index, message] of fallbackTeamMessages.entries()) {
+      await client.query(
+        `INSERT INTO team_messages (id, quote, author, theme, priority)
+         VALUES ($1, $2, $3, $4, $5)
+         ON CONFLICT (id) DO NOTHING`,
+        [message.id, message.quote, message.author, message.theme, index]
+      );
+    }
+
+    await client.query("COMMIT");
+  } catch (error) {
+    await client.query("ROLLBACK");
+    throw error;
+  } finally {
+    client.release();
+  }
 }

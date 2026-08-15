@@ -2,8 +2,10 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Lead, SalesPerson, salesPeople, statusOptions } from "./shared";
+import { fallbackTeamMessages, type TeamMessage } from "./teamMessages";
 
 const initialLeads: Lead[] = [];
+const TEAM_MESSAGE_INTERVAL_MS = 60 * 60 * 1_000;
 
 type EditModalState = {
   lead: Lead | null;
@@ -52,6 +54,8 @@ export default function HomePage() {
   const [selectedStatus, setSelectedStatus] = useState<string>("all");
   const [modalState, setModalState] = useState<EditModalState | null>(null);
   const [currentTime, setCurrentTime] = useState<Date | null>(null);
+  const [teamMessages, setTeamMessages] = useState<TeamMessage[]>(fallbackTeamMessages);
+  const [teamMessageIndex, setTeamMessageIndex] = useState(0);
 
   useEffect(() => {
     const fetchLeads = async () => {
@@ -80,6 +84,38 @@ export default function HomePage() {
 
     return () => window.clearInterval(intervalId);
   }, []);
+
+  useEffect(() => {
+    const fetchTeamMessages = async () => {
+      try {
+        const response = await fetch("/api/team-messages", { cache: "no-store" });
+        if (!response.ok) {
+          console.error("Team messages fetch failed", response.status);
+          return;
+        }
+
+        const data = await response.json();
+        if (Array.isArray(data.messages) && data.messages.length > 0) {
+          setTeamMessages(data.messages);
+        }
+      } catch (error) {
+        console.error("Team messages fetch failed", error);
+      }
+    };
+
+    fetchTeamMessages();
+  }, []);
+
+  useEffect(() => {
+    const updateTeamMessage = () => {
+      setTeamMessageIndex(Math.floor(Date.now() / TEAM_MESSAGE_INTERVAL_MS) % teamMessages.length);
+    };
+
+    updateTeamMessage();
+    const intervalId = window.setInterval(updateTeamMessage, TEAM_MESSAGE_INTERVAL_MS);
+
+    return () => window.clearInterval(intervalId);
+  }, [teamMessages.length]);
 
   const saveLeadToDb = async (lead: Lead) => {
     try {
@@ -153,12 +189,7 @@ export default function HomePage() {
   );
 
   const maxChartValue = Math.max(...statusChart.map((item) => item.value), 1);
-  const motivationMessage =
-    counts.sold > 0
-      ? "Harika gidiyorsunuz; kapanan satışlar ekibin ritmini yukarı taşıyor."
-      : counts.called > 0
-      ? "İyi bir tempo var; düzenli takip satış ihtimalini güçlendirir."
-      : "Bugünün ilk araması ekibin enerjisini başlatır; en üstteki yeni leadlerden başlayın.";
+  const currentTeamMessage = teamMessages[teamMessageIndex] ?? teamMessages[0];
 
   const formattedDate = currentTime
     ? new Intl.DateTimeFormat("tr-TR", {
@@ -291,7 +322,13 @@ export default function HomePage() {
 
             <div className="card inner-card">
               <h3>Takım Mesajı</h3>
-              <p className="hero-text">{motivationMessage}</p>
+              <blockquote className="team-message-quote">
+                “{currentTeamMessage.quote}”
+              </blockquote>
+              <div className="team-message-meta">
+                <strong>{currentTeamMessage.author}</strong>
+                <span>{currentTeamMessage.theme}</span>
+              </div>
               <p className="muted-text">
                 Yeni leadler listenin en üstünde tutuluyor. Hızlı geri dönüş, satış ihtimalini artırır ve ritmi canlı tutar.
               </p>
