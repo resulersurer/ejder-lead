@@ -189,9 +189,6 @@ export async function ensureTeamMessagesTable() {
     ADD COLUMN IF NOT EXISTS priority INTEGER NOT NULL DEFAULT 0;
   `);
 
-  const existing = await db.query("SELECT COUNT(*)::INT AS count FROM team_messages");
-  if ((existing.rows[0]?.count ?? 0) > 0) return;
-
   const client = await db.connect();
   try {
     await client.query("BEGIN");
@@ -200,7 +197,11 @@ export async function ensureTeamMessagesTable() {
       await client.query(
         `INSERT INTO team_messages (id, quote, author, theme, priority)
          VALUES ($1, $2, $3, $4, $5)
-         ON CONFLICT (id) DO NOTHING`,
+         ON CONFLICT (id) DO UPDATE SET
+           quote = EXCLUDED.quote,
+           author = EXCLUDED.author,
+           theme = EXCLUDED.theme,
+           priority = EXCLUDED.priority`,
         [message.id, message.quote, message.author, message.theme, index]
       );
     }
