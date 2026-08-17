@@ -16,33 +16,34 @@ export type Lead = {
 export type SalesPerson = {
   id: string;
   name: string;
+  extension?: string;
 };
 
 export const statusOptions: LeadStatus[] = ["Yeni", "Arandı", "Cevap Yok", "Bekliyor", "Satıldı"];
 
 export const salesPeople: SalesPerson[] = [
-  { id: "p-1", name: "NAZLICAN TUĞAL" },
-  { id: "p-2", name: "ÇAĞAN GENCER" },
-  { id: "p-3", name: "NURGÜL KOÇ" },
-  { id: "p-4", name: "YELİZ KABAKÇI" },
-  { id: "p-6", name: "YAREN DİKİLİTAŞ" },
-  { id: "p-7", name: "LEYLA SANEM UZUN" },
-  { id: "p-8", name: "OKAN ZİYLAN" },
-  { id: "p-9", name: "MUSTAFA ŞAHŞER ŞAHİN" },
-  { id: "p-10", name: "ŞİYAR KARADERE" },
-  { id: "p-12", name: "SİMAY KÖROĞLU" },
-  { id: "p-13", name: "SELİN ÖZBEY" },
-  { id: "p-14", name: "SEFA AYDAŞ" },
-  { id: "p-15", name: "RAMAZAN KOÇAK" },
-  { id: "p-16", name: "MUSA GÜNEŞ" },
-  { id: "p-17", name: "GİZEM BİLGİ" },
-  { id: "p-18", name: "FURKAN YILMAZ" },
-  { id: "p-19", name: "ELİF DİLAN EKİCİ" },
-  { id: "p-20", name: "ECEM BALKI" },
-  { id: "p-21", name: "CEREN VAREL" },
-  { id: "p-22", name: "CEMAL HALİL EMİR" },
-  { id: "p-23", name: "BEDİRHAN HEKİM" },
-  { id: "p-24", name: "BAHAR KELEŞ" },
+  { id: "p-1", name: "NAZLICAN TUĞAL", extension: "1058" },
+  { id: "p-2", name: "ÇAĞAN GENCER", extension: "1057" },
+  { id: "p-3", name: "NURGÜL KOÇ", extension: "1024" },
+  { id: "p-4", name: "YELİZ KABAKÇI", extension: "1023" },
+  { id: "p-6", name: "YAREN DİKİLİTAŞ", extension: "1049" },
+  { id: "p-7", name: "LEYLA SANEM UZUN", extension: "1037" },
+  { id: "p-8", name: "OKAN ZİYLAN", extension: "1020" },
+  { id: "p-9", name: "MUSTAFA ŞAHŞER ŞAHİN", extension: "1036" },
+  { id: "p-10", name: "ŞİYAR KARADERE", extension: "1026" },
+  { id: "p-12", name: "SİMAY KÖROĞLU", extension: "1025" },
+  { id: "p-13", name: "SELİN ÖZBEY", extension: "1038" },
+  { id: "p-14", name: "SEFA AYDAŞ", extension: "1010" },
+  { id: "p-15", name: "RAMAZAN KOÇAK", extension: "1071" },
+  { id: "p-16", name: "MUSA GÜNEŞ", extension: "1006" },
+  { id: "p-17", name: "GİZEM BİLGİ", extension: "1031" },
+  { id: "p-18", name: "FURKAN YILMAZ", extension: "1066" },
+  { id: "p-19", name: "ELİF DİLAN EKİCİ", extension: "1045" },
+  { id: "p-20", name: "ECEM BALKI", extension: "1013" },
+  { id: "p-21", name: "CEREN VAREL", extension: "1033" },
+  { id: "p-22", name: "CEMAL HALİL EMİR", extension: "1072" },
+  { id: "p-23", name: "BEDİRHAN HEKİM", extension: "1046" },
+  { id: "p-24", name: "BAHAR KELEŞ", extension: "1034" },
 ];
 
 export const normalizeStatus = (value: unknown): LeadStatus => {

@@ -211,6 +211,32 @@ export default function HomePage() {
 
   const closeModal = () => setModalState(null);
 
+  const initiateCall = async (lead: Lead) => {
+    try {
+      const person = salesPeople.find(p => p.name === lead.salesPerson);
+      if (!person?.extension) {
+        alert("Bu satış temsilcisi için dahili numara (extension) bulunamadı.");
+        return;
+      }
+      
+      const response = await fetch("/api/call", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ extension: person.extension, destination: lead.phone })
+      });
+      
+      const data = await response.json();
+      if (!response.ok) {
+        alert(data.error || "Arama başlatılamadı");
+      } else {
+        alert("Çağrı başlatıldı! Lütfen dahili telefonunuzu açın.");
+      }
+    } catch (error) {
+      console.error(error);
+      alert("Beklenmeyen bir hata oluştu.");
+    }
+  };
+
   const saveLead = async () => {
     if (!modalState?.lead) return;
 
@@ -379,7 +405,19 @@ export default function HomePage() {
                       <span className="lead-priority-badge">Yeni Fırsat</span>
                     )}
                   </div>
-                  <p className="lead-row-subtitle">{lead.phone || "Telefon bilgisi yok"}</p>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <p className="lead-row-subtitle" style={{ margin: 0 }}>{lead.phone || "Telefon bilgisi yok"}</p>
+                    {lead.phone && (
+                      <button 
+                        className="badge" 
+                        style={{ cursor: "pointer", background: "#f0fdf4", color: "#166534", border: "1px solid #bbf7d0", padding: "2px 8px" }}
+                        onClick={() => initiateCall(lead)}
+                        title="Tıkla Ara"
+                      >
+                        📞 Ara
+                      </button>
+                    )}
+                  </div>
                 </div>
 
                 <div className="lead-row-meta">
