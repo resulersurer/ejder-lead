@@ -303,7 +303,7 @@ export default function UploadPage() {
 
           {isPersonUploading && (
             <div style={{ display: "flex", alignItems: "center", gap: 10, color: "#e11d48" }}>
-              <span className="call-btn-spinner" style={{ borderTopColor: "#e11d48", border: "2px solid rgba(225,29,72,0.2)", borderTopColor: "#e11d48" }} />
+              <span className="call-btn-spinner" style={{ border: "2px solid rgba(225,29,72,0.2)", borderTopColor: "#e11d48" }} />
               <span style={{ fontSize: 14, fontWeight: 600 }}>Yükleniyor...</span>
             </div>
           )}
