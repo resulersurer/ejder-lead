@@ -1126,3 +1126,80 @@ textarea {
     flex-direction: column;
   }
 }
+
+/* Click to Call Styles */
+.lead-phone-container {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 6px;
+}
+
+.lead-phone-text {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 500;
+  color: #475569;
+}
+
+.call-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: 9999px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #ffffff;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.25);
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  outline: none;
+  user-select: none;
+}
+
+.call-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.4);
+  transform: translateY(-1px);
+}
+
+.call-btn:active:not(:disabled) {
+  transform: translateY(0) scale(0.97);
+  box-shadow: 0 1px 4px rgba(16, 185, 129, 0.2);
+}
+
+.call-btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+  background: #94a3b8;
+  box-shadow: none;
+  border-color: #cbd5e1;
+}
+
+.call-btn-icon {
+  width: 13px;
+  height: 13px;
+  transition: transform 0.2s ease;
+}
+
+.call-btn:hover:not(:disabled) .call-btn-icon {
+  transform: scale(1.15) rotate(-10deg);
+}
+
+.call-btn-spinner {
+  width: 12px;
+  height: 12px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: #ffffff;
+  border-radius: 50%;
+  animation: call-spin 0.6s linear infinite;
+}
+
+@keyframes call-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

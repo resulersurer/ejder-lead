@@ -56,6 +56,7 @@ export default function HomePage() {
   const [currentTime, setCurrentTime] = useState<Date | null>(null);
   const [teamMessages, setTeamMessages] = useState<TeamMessage[]>(fallbackTeamMessages);
   const [teamMessageIndex, setTeamMessageIndex] = useState(0);
+  const [callingLeadId, setCallingLeadId] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchLeads = async () => {
@@ -219,6 +220,7 @@ export default function HomePage() {
         return;
       }
       
+      setCallingLeadId(lead.id);
       const response = await fetch("/api/call", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -234,6 +236,8 @@ export default function HomePage() {
     } catch (error) {
       console.error(error);
       alert("Beklenmeyen bir hata oluştu.");
+    } finally {
+      setCallingLeadId(null);
     }
   };
 
@@ -405,16 +409,29 @@ export default function HomePage() {
                       <span className="lead-priority-badge">Yeni Fırsat</span>
                     )}
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <p className="lead-row-subtitle" style={{ margin: 0 }}>{lead.phone || "Telefon bilgisi yok"}</p>
+                  <div className="lead-phone-container">
+                    <p className="lead-phone-text">{lead.phone || "Telefon bilgisi yok"}</p>
                     {lead.phone && (
                       <button 
-                        className="badge" 
-                        style={{ cursor: "pointer", background: "#f0fdf4", color: "#166534", border: "1px solid #bbf7d0", padding: "2px 8px" }}
+                        type="button"
+                        className="call-btn" 
                         onClick={() => initiateCall(lead)}
-                        title="Tıkla Ara"
+                        disabled={callingLeadId === lead.id}
+                        title={`${lead.salesPerson} (${salesPeople.find(p => p.name === lead.salesPerson)?.extension || "Dahili Yok"}) dahilisinden aranacak`}
                       >
-                        📞 Ara
+                        {callingLeadId === lead.id ? (
+                          <>
+                            <span className="call-btn-spinner" />
+                            <span>Aranıyor...</span>
+                          </>
+                        ) : (
+                          <>
+                            <svg className="call-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
+                            </svg>
+                            <span>Tıkla Ara</span>
+                          </>
+                        )}
                       </button>
                     )}
                   </div>
