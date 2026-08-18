@@ -81,6 +81,11 @@ export default function UploadPage() {
   const [transferMessage, setTransferMessage] = useState<string | null>(null);
   const [isTransferring, setIsTransferring] = useState(false);
 
+  // Export state
+  const [exportError, setExportError] = useState<string | null>(null);
+  const [exportMessage, setExportMessage] = useState<string | null>(null);
+  const [isExporting, setIsExporting] = useState(false);
+
   const fetchLeads = async () => {
     try {
       const response = await fetch("/api/leads", { cache: "no-store" });
@@ -234,6 +239,61 @@ export default function UploadPage() {
     }
   };
 
+  const handleExport = async () => {
+    if (leads.length === 0) {
+      setExportError("Dışa aktarılacak lead bulunamadı.");
+      setExportMessage(null);
+      return;
+    }
+
+    setExportError(null);
+    setExportMessage(null);
+    setIsExporting(true);
+
+    try {
+      const exportData = leads.map((lead) => ({
+        "ID": lead.id,
+        "Ad Soyad": lead.name,
+        "Şirket": lead.company,
+        "Telefon": lead.phone,
+        "Durum": lead.status,
+        "Personel": lead.salesPerson,
+        "Notlar": lead.notes,
+        "Aranma Durumu": lead.touched ? "Aranıldı" : "Aranmadı",
+        "Oluşturulma Tarihi": lead.createdAt ? new Date(lead.createdAt).toLocaleString("tr-TR") : "",
+        "Durum Güncelleme": lead.statusUpdatedAt ? new Date(lead.statusUpdatedAt).toLocaleString("tr-TR") : "",
+      }));
+
+      const worksheet = XLSX.utils.json_to_sheet(exportData);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Leads");
+
+      // Sütun genişliklerini ayarla
+      worksheet["!cols"] = [
+        { wch: 20 }, // ID
+        { wch: 25 }, // Ad Soyad
+        { wch: 25 }, // Şirket
+        { wch: 18 }, // Telefon
+        { wch: 12 }, // Durum
+        { wch: 25 }, // Personel
+        { wch: 30 }, // Notlar
+        { wch: 14 }, // Aranma Durumu
+        { wch: 22 }, // Oluşturulma Tarihi
+        { wch: 22 }, // Durum Güncelleme
+      ];
+
+      const date = new Date().toISOString().slice(0, 10);
+      XLSX.writeFile(workbook, `leads-export-${date}.xlsx`);
+      setExportMessage(`✓ ${leads.length} lead başarıyla Excel dosyası olarak indirildi.`);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Excel dosyası oluşturulamadı.";
+      setExportError(message);
+      console.error(error);
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   const deleteNoAnswerLeads = async () => {
     if (!noAnswerLeadIds.length || isDeletingNoAnswer) return;
 
@@ -283,6 +343,27 @@ export default function UploadPage() {
         <input type="file" accept=".xlsx,.xls" onChange={handleFileUpload} />
         {uploadError && <p style={{ color: "#dc2626", marginTop: 12 }}>{uploadError}</p>}
         {uploadMessage && <p style={{ color: "#16a34a", marginTop: 12 }}>{uploadMessage}</p>}
+      </div>
+
+      {/* Veri Export */}
+      <div className="card" style={{ marginTop: 24 }}>
+        <div className="lead-list-toolbar">
+          <div>
+            <h2>Veri Export</h2>
+            <p className="muted-text" style={{ marginBottom: 0 }}>
+              Sistemdeki tüm leadleri Excel dosyası olarak bilgisayarınıza indirin.
+            </p>
+          </div>
+          <button
+            className="primary"
+            disabled={isExporting || leads.length === 0}
+            onClick={handleExport}
+          >
+            {isExporting ? "İndiriliyor..." : `Excel İndir (${leads.length})`}
+          </button>
+        </div>
+        {exportError && <p style={{ color: "#dc2626", marginTop: 12 }}>{exportError}</p>}
+        {exportMessage && <p style={{ color: "#16a34a", marginTop: 12 }}>{exportMessage}</p>}
       </div>
 
       <div className="card" style={{ marginTop: 24 }}>
