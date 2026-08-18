@@ -4,6 +4,38 @@ import { useEffect, useMemo, useState } from "react";
 import * as XLSX from "xlsx";
 import { Lead, findSalesPerson, getRowValue, normalizeStatus, salesPeople } from "../shared";
 
+const CHUNK_SIZE = 500;
+
+// Leadleri parçalara bölerek API'ye gönder (Vercel body limitini aşmamak için)
+async function uploadLeadsInChunks(leads: Lead[]): Promise<{ count: number; error?: string }> {
+  let totalUploaded = 0;
+
+  for (let i = 0; i < leads.length; i += CHUNK_SIZE) {
+    const chunk = leads.slice(i, i + CHUNK_SIZE);
+    const response = await fetch("/api/leads", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ leads: chunk }),
+    });
+
+    if (!response.ok) {
+      const text = await response.text();
+      let message = `Sunucu hatası: ${response.status}`;
+      try {
+        const payload = JSON.parse(text);
+        message = payload.error || message;
+      } catch {
+        if (text) message = text;
+      }
+      throw new Error(message);
+    }
+
+    totalUploaded += chunk.length;
+  }
+
+  return { count: totalUploaded };
+}
+
 // Personel bazlı yükleme
 async function uploadLeadsForPerson(
   file: File,
@@ -36,25 +68,7 @@ async function uploadLeadsForPerson(
       };
     });
 
-    const response = await fetch("/api/leads", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ leads: importedLeads }),
-    });
-
-    if (!response.ok) {
-      const text = await response.text();
-      let message = `Sunucu hatası: ${response.status}`;
-      try {
-        const payload = JSON.parse(text);
-        message = payload.error || message;
-      } catch {
-        if (text) message = text;
-      }
-      throw new Error(message);
-    }
-
-    return { count: importedLeads.length };
+    return await uploadLeadsInChunks(importedLeads);
   } catch (error) {
     return { count: 0, error: error instanceof Error ? error.message : "Bilinmeyen hata." };
   }
@@ -157,25 +171,12 @@ export default function UploadPage() {
           }))
         : importedLeads;
 
-      const response = await fetch("/api/leads", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ leads: finalLeads }),
-      });
-
-      if (!response.ok) {
-        const text = await response.text();
-        let message = `Sunucu hatası: ${response.status}`;
-        try {
-          const payload = JSON.parse(text);
-          message = payload.error || message;
-        } catch {
-          if (text) message = text;
-        }
-        throw new Error(message);
+      const result = await uploadLeadsInChunks(finalLeads);
+      if (result.error) {
+        throw new Error(result.error);
       }
 
-      setUploadMessage(`${finalLeads.length} lead başarıyla yüklendi. Ana sayfaya dönün.`);
+      setUploadMessage(`${result.count} lead başarıyla yüklendi. Ana sayfaya dönün.`);
       await fetchLeads();
     } catch (error) {
       const message = error instanceof Error ? error.message : "Excel dosyası yüklenemedi. Lütfen sütun başlıklarını kontrol edin.";
