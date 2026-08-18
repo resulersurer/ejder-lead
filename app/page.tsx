@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { Lead, SalesPerson, salesPeople, statusOptions } from "./shared";
 import { fallbackTeamMessages, type TeamMessage } from "./teamMessages";
 
 const initialLeads: Lead[] = [];
 const TEAM_MESSAGE_INTERVAL_MS = 60 * 60 * 1_000;
+const FETCH_LIMIT = 500;
 
 type EditModalState = {
   lead: Lead | null;
@@ -50,33 +51,115 @@ const formatLeadResponseDuration = (lead: Lead) => {
 export default function HomePage() {
   const [currentPersonId, setCurrentPersonId] = useState<string>("all");
   const [leads, setLeads] = useState<Lead[]>(initialLeads);
+  const [totalLeads, setTotalLeads] = useState(0);
+  const [statusCounts, setStatusCounts] = useState<Record<string, number>>({
+    "Yeni": 0,
+    "Arandı": 0,
+    "Cevap Yok": 0,
+    "Bekliyor": 0,
+    "Satıldı": 0,
+  });
   const [searchTerm, setSearchTerm] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [selectedStatus, setSelectedStatus] = useState<string>("all");
   const [modalState, setModalState] = useState<EditModalState | null>(null);
   const [currentTime, setCurrentTime] = useState<Date | null>(null);
   const [teamMessages, setTeamMessages] = useState<TeamMessage[]>(fallbackTeamMessages);
   const [teamMessageIndex, setTeamMessageIndex] = useState(0);
   const [callingLeadId, setCallingLeadId] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const offsetRef = useRef(0);
 
+  const currentPerson = useMemo(
+    () => salesPeople.find((person) => person.id === currentPersonId) ?? null,
+    [currentPersonId]
+  );
+
+  // Arama terimini debounce et
   useEffect(() => {
-    const fetchLeads = async () => {
-      try {
-        const response = await fetch("/api/leads", { cache: "no-store" });
-        if (response.ok) {
-          const data = await response.json();
-          if (Array.isArray(data.leads) && data.leads.length > 0) {
-            setLeads(data.leads);
-          }
-        } else {
-          console.error("Leads fetch failed", response.status);
-        }
-      } catch (error) {
-        console.error("Leads fetch failed", error);
-      }
-    };
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchTerm);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
 
-    fetchLeads();
-  }, []);
+  const fetchLeads = useCallback(async (reset = true) => {
+    if (isLoading) return;
+    setIsLoading(true);
+
+    try {
+      const params = new URLSearchParams();
+      params.set("limit", String(FETCH_LIMIT));
+      params.set("offset", String(reset ? 0 : offsetRef.current));
+      if (debouncedSearch) params.set("search", debouncedSearch);
+      if (selectedStatus !== "all") params.set("status", selectedStatus);
+      if (currentPersonId !== "all" && currentPerson) params.set("person", currentPerson.name);
+
+      const response = await fetch(`/api/leads?${params.toString()}`, { cache: "no-store" });
+      if (!response.ok) {
+        console.error("Leads fetch failed", response.status);
+        return;
+      }
+
+      const data = await response.json();
+      const fetchedLeads = (Array.isArray(data.leads) ? data.leads : []) as Lead[];
+      if (reset) {
+        setLeads(fetchedLeads);
+        offsetRef.current = fetchedLeads.length;
+      } else {
+        setLeads((current) => {
+          const existing = new Set(current.map((lead) => lead.id));
+          return [...current, ...fetchedLeads.filter((lead) => !existing.has(lead.id))];
+        });
+        offsetRef.current += fetchedLeads.length;
+      }
+
+      if (typeof data.total === "number") setTotalLeads(data.total);
+      if (data.statusCounts) setStatusCounts(data.statusCounts);
+    } catch (error) {
+      console.error("Leads fetch failed", error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [debouncedSearch, selectedStatus, currentPersonId, currentPerson, isLoading]);
+
+  // Filtreler değiştiğinde yeniden yükle
+  useEffect(() => {
+    fetchLeads(true);
+  }, [fetchLeads]);
+
+  const loadMore = async () => {
+    if (isLoadingMore || isLoading) return;
+    setIsLoadingMore(true);
+    try {
+      const params = new URLSearchParams();
+      params.set("limit", String(FETCH_LIMIT));
+      params.set("offset", String(offsetRef.current));
+      if (debouncedSearch) params.set("search", debouncedSearch);
+      if (selectedStatus !== "all") params.set("status", selectedStatus);
+      if (currentPersonId !== "all" && currentPerson) params.set("person", currentPerson.name);
+
+      const response = await fetch(`/api/leads?${params.toString()}`, { cache: "no-store" });
+      if (!response.ok) {
+        console.error("Leads fetch failed", response.status);
+        return;
+      }
+
+      const data = await response.json();
+      const newLeads = (Array.isArray(data.leads) ? data.leads : []) as Lead[];
+      setLeads((current) => {
+        const existing = new Set(current.map((lead) => lead.id));
+        return [...current, ...newLeads.filter((lead) => !existing.has(lead.id))];
+      });
+      offsetRef.current += newLeads.length;
+      if (typeof data.total === "number") setTotalLeads(data.total);
+    } catch (error) {
+      console.error("Load more failed", error);
+    } finally {
+      setIsLoadingMore(false);
+    }
+  };
 
   useEffect(() => {
     const updateTime = () => setCurrentTime(new Date());
@@ -136,57 +219,26 @@ export default function HomePage() {
     }
   };
 
-  const currentPerson = useMemo(
-    () => salesPeople.find((person) => person.id === currentPersonId) ?? null,
-    [currentPersonId]
-  );
-
-  const personLeads = useMemo(() => {
-    if (currentPersonId === "all") return leads;
-    return leads.filter((lead) => lead.salesPerson === currentPerson?.name);
-  }, [currentPerson, currentPersonId, leads]);
-
-  const filteredLeads = useMemo(
-    () =>
-      personLeads
-        .filter((lead) => {
-          const matchesSearch =
-            lead.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            lead.turname.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            lead.phone.includes(searchTerm);
-          const matchesStatus = selectedStatus === "all" || lead.status === selectedStatus;
-          return matchesSearch && matchesStatus;
-        })
-        .sort((left, right) => {
-          const leftUntouched = !left.touched && left.status === "Yeni";
-          const rightUntouched = !right.touched && right.status === "Yeni";
-
-          if (leftUntouched === rightUntouched) return 0;
-          return leftUntouched ? -1 : 1;
-        }),
-    [personLeads, searchTerm, selectedStatus]
-  );
-
   const counts = useMemo(
     () => ({
-      total: personLeads.length,
-      called: personLeads.filter((lead) => lead.status === "Arandı").length,
-      waiting: personLeads.filter((lead) => lead.status === "Bekliyor").length,
-      noAnswer: personLeads.filter((lead) => lead.status === "Cevap Yok").length,
-      sold: personLeads.filter((lead) => lead.status === "Satıldı").length,
+      total: totalLeads,
+      called: statusCounts["Arandı"] ?? 0,
+      waiting: statusCounts["Bekliyor"] ?? 0,
+      noAnswer: statusCounts["Cevap Yok"] ?? 0,
+      sold: statusCounts["Satıldı"] ?? 0,
     }),
-    [personLeads]
+    [totalLeads, statusCounts]
   );
 
   const statusChart = useMemo(
     () => [
-      { label: "Yeni", value: personLeads.filter((lead) => lead.status === "Yeni").length, color: "#94a3b8" },
+      { label: "Yeni", value: statusCounts["Yeni"] ?? 0, color: "#94a3b8" },
       { label: "Arandı", value: counts.called, color: "#10b981" },
       { label: "Bekliyor", value: counts.waiting, color: "#6366f1" },
       { label: "Cevap Yok", value: counts.noAnswer, color: "#f59e0b" },
       { label: "Satıldı", value: counts.sold, color: "#ec4899" },
     ],
-    [counts, personLeads]
+    [counts, statusCounts]
   );
 
   const maxChartValue = Math.max(...statusChart.map((item) => item.value), 1);
@@ -261,8 +313,19 @@ export default function HomePage() {
       setLeads((current) =>
         current.map((lead) => (lead.id === savedLead.id ? savedLead : lead))
       );
+      // Durum sayılarını güncelle
+      const newStatus = savedLead.status;
+      const oldStatus = updatedLead.status !== savedLead.status ? savedLead.status : null;
+      setStatusCounts((current) => {
+        const next = { ...current };
+        if (oldStatus) next[oldStatus] = Math.max(0, (next[oldStatus] ?? 0) - 1);
+        next[newStatus] = (next[newStatus] ?? 0) + 1;
+        return next;
+      });
     }
   };
+
+  const hasMore = leads.length < totalLeads;
 
   return (
     <main className="container">
@@ -310,19 +373,19 @@ export default function HomePage() {
           <div className="dashboard-summary-grid" style={{ marginTop: 20 }}>
             <div className="metric-card soft-metric-card">
               <span className="metric-label">Toplam Lead</span>
-              <strong className="metric-value">{counts.total}</strong>
+              <strong className="metric-value">{counts.total.toLocaleString("tr-TR")}</strong>
             </div>
             <div className="metric-card soft-metric-card">
               <span className="metric-label">Arandı</span>
-              <strong className="metric-value">{counts.called}</strong>
+              <strong className="metric-value">{counts.called.toLocaleString("tr-TR")}</strong>
             </div>
             <div className="metric-card soft-metric-card">
               <span className="metric-label">Bekliyor</span>
-              <strong className="metric-value">{counts.waiting}</strong>
+              <strong className="metric-value">{counts.waiting.toLocaleString("tr-TR")}</strong>
             </div>
             <div className="metric-card soft-metric-card">
               <span className="metric-label">Satıldı</span>
-              <strong className="metric-value">{counts.sold}</strong>
+              <strong className="metric-value">{counts.sold.toLocaleString("tr-TR")}</strong>
             </div>
           </div>
 
@@ -334,7 +397,7 @@ export default function HomePage() {
                   <div key={item.label} className="chart-row">
                     <div className="chart-row-header">
                       <span>{item.label}</span>
-                      <strong>{item.value}</strong>
+                      <strong>{item.value.toLocaleString("tr-TR")}</strong>
                     </div>
                     <div className="chart-track chart-track-soft">
                       <div
@@ -391,100 +454,119 @@ export default function HomePage() {
             ))}
           </select>
           <p style={{ marginTop: 12 }}>
-            Gösterilen lead: <strong>{filteredLeads.length}</strong> / {counts.total}
+            Gösterilen lead: <strong>{leads.length.toLocaleString("tr-TR")}</strong> / {counts.total.toLocaleString("tr-TR")}
           </p>
         </div>
       </div>
 
       <div className="card" style={{ marginTop: 24 }}>
         <h2>Lead Listesi</h2>
-        <div className="lead-list">
-          {filteredLeads.map((lead) => (
-            <div key={lead.id} className="lead-row-card">
-              <div className="lead-row-main">
-                <div>
-                  <div className="lead-row-title">
-                    <strong>{lead.name}</strong>
-                    {!lead.touched && lead.status === "Yeni" && (
-                      <span className="lead-priority-badge">Yeni Fırsat</span>
-                    )}
+        {isLoading && leads.length === 0 ? (
+          <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "24px 0", color: "#e11d48" }}>
+            <span className="call-btn-spinner" style={{ border: "2px solid rgba(225,29,72,0.2)", borderTopColor: "#e11d48" }} />
+            <span style={{ fontSize: 14, fontWeight: 600 }}>Leadler yükleniyor...</span>
+          </div>
+        ) : (
+          <div className="lead-list">
+            {leads.map((lead) => (
+              <div key={lead.id} className="lead-row-card">
+                <div className="lead-row-main">
+                  <div>
+                    <div className="lead-row-title">
+                      <strong>{lead.name}</strong>
+                      {!lead.touched && lead.status === "Yeni" && (
+                        <span className="lead-priority-badge">Yeni Fırsat</span>
+                      )}
+                    </div>
+                    <div className="lead-phone-container">
+                      <p className="lead-phone-text">
+                        {lead.turname ? `Tur: ${lead.turname}` : "Tur bilgisi yok"} • {lead.phone || "Telefon bilgisi yok"}
+                      </p>
+                      {lead.phone && (
+                        <button 
+                          type="button"
+                          className="call-btn" 
+                          onClick={() => initiateCall(lead)}
+                          disabled={callingLeadId === lead.id}
+                          title={`${lead.salesPerson} (${salesPeople.find(p => p.name === lead.salesPerson)?.extension || "Dahili Yok"}) dahilisinden aranacak`}
+                        >
+                          {callingLeadId === lead.id ? (
+                            <>
+                              <span className="call-btn-spinner" />
+                              <span>Aranıyor...</span>
+                            </>
+                          ) : (
+                            <>
+                              <svg className="call-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
+                              </svg>
+                              <span>Tıkla Ara</span>
+                            </>
+                          )}
+                        </button>
+                      )}
+                    </div>
                   </div>
-                  <div className="lead-phone-container">
-                    <p className="lead-phone-text">
-                      {lead.turname ? `Tur: ${lead.turname}` : "Tur bilgisi yok"} • {lead.phone || "Telefon bilgisi yok"}
-                    </p>
-                    {lead.phone && (
-                      <button 
-                        type="button"
-                        className="call-btn" 
-                        onClick={() => initiateCall(lead)}
-                        disabled={callingLeadId === lead.id}
-                        title={`${lead.salesPerson} (${salesPeople.find(p => p.name === lead.salesPerson)?.extension || "Dahili Yok"}) dahilisinden aranacak`}
-                      >
-                        {callingLeadId === lead.id ? (
-                          <>
-                            <span className="call-btn-spinner" />
-                            <span>Aranıyor...</span>
-                          </>
-                        ) : (
-                          <>
-                            <svg className="call-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                              <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
-                            </svg>
-                            <span>Tıkla Ara</span>
-                          </>
-                        )}
-                      </button>
-                    )}
+
+                  <div className="lead-row-meta">
+                    <span className="lead-chip">{lead.salesPerson}</span>
+                    <span
+                      className={`badge ${
+                        lead.status === "Arandı"
+                          ? "status-calls"
+                          : lead.status === "Cevap Yok"
+                          ? "status-pending"
+                          : lead.status === "Bekliyor"
+                          ? "status-notes"
+                          : lead.status === "Satıldı"
+                          ? "status-notes"
+                          : ""
+                      }`}
+                    >
+                      {lead.status}
+                    </span>
                   </div>
                 </div>
 
-                <div className="lead-row-meta">
-                  <span className="lead-chip">{lead.salesPerson}</span>
-                  <span
-                    className={`badge ${
-                      lead.status === "Arandı"
-                        ? "status-calls"
-                        : lead.status === "Cevap Yok"
-                        ? "status-pending"
-                        : lead.status === "Bekliyor"
-                        ? "status-notes"
-                        : lead.status === "Satıldı"
-                        ? "status-notes"
-                        : ""
-                    }`}
-                  >
-                    {lead.status}
+                <div className="lead-timing-row">
+                  <span>
+                    <strong>Yüklendi</strong>
+                    {formatLeadDateTime(lead.createdAt)}
+                  </span>
+                  <span>
+                    <strong>Durum değişti</strong>
+                    {formatLeadDateTime(lead.statusUpdatedAt)}
+                  </span>
+                  <span>
+                    <strong>Yanıt süresi</strong>
+                    {formatLeadResponseDuration(lead)}
                   </span>
                 </div>
-              </div>
 
-              <div className="lead-timing-row">
-                <span>
-                  <strong>Yüklendi</strong>
-                  {formatLeadDateTime(lead.createdAt)}
-                </span>
-                <span>
-                  <strong>Durum değişti</strong>
-                  {formatLeadDateTime(lead.statusUpdatedAt)}
-                </span>
-                <span>
-                  <strong>Yanıt süresi</strong>
-                  {formatLeadResponseDuration(lead)}
-                </span>
+                <div className="lead-row-footer">
+                  <p className="lead-note">{lead.notes ? lead.notes : "Henüz not eklenmedi."}</p>
+                  <button onClick={() => openModal(lead)}>Düzenle</button>
+                </div>
               </div>
+            ))}
 
-              <div className="lead-row-footer">
-                <p className="lead-note">{lead.notes ? lead.notes : "Henüz not eklenmedi."}</p>
-                <button onClick={() => openModal(lead)}>Düzenle</button>
+            {leads.length === 0 && !isLoading && (
+              <div className="lead-empty-state">Seçili filtrelere uygun lead bulunamadı.</div>
+            )}
+
+            {hasMore && (
+              <div style={{ textAlign: "center", padding: "16px 0" }}>
+                <button
+                  className="secondary"
+                  onClick={loadMore}
+                  disabled={isLoadingMore}
+                >
+                  {isLoadingMore ? "Yükleniyor..." : `Daha Fazla Yükle (${(totalLeads - leads.length).toLocaleString("tr-TR")} kaldı)`}
+                </button>
               </div>
-            </div>
-          ))}
-
-          {filteredLeads.length === 0 && (
-            <div className="lead-empty-state">Seçili filtrelere uygun lead bulunamadı.</div>
-          )}
-        </div>
+            )}
+          </div>
+        )}
       </div>
 
       {modalState?.lead && (

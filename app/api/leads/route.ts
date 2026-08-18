@@ -32,10 +32,62 @@ function normalizeLeadStatus(status: unknown) {
   return raw || "Yeni";
 }
 
-async function getAllLeads() {
+async function getAllLeads(params?: {
+  limit?: number;
+  offset?: number;
+  search?: string;
+  status?: string;
+  person?: string;
+}) {
   await ensureLeadsTable();
-  const result = await db.query(
-    `SELECT
+
+  const conditions: string[] = [];
+  const values: unknown[] = [];
+
+  if (params?.search) {
+    const searchTerm = `%${params.search.toLowerCase()}%`;
+    values.push(searchTerm, searchTerm, searchTerm);
+    conditions.push(
+      `(LOWER(name) LIKE $${values.length - 2} OR LOWER(turname) LIKE $${values.length - 1} OR phone LIKE $${values.length})`
+    );
+  }
+
+  if (params?.status && params.status !== "all") {
+    values.push(params.status);
+    conditions.push(`status = $${values.length}`);
+  }
+
+  if (params?.person && params.person !== "all") {
+    values.push(params.person);
+    conditions.push(`sales_person = $${values.length}`);
+  }
+
+  const whereClause = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
+
+  const countResult = await db.query(
+    `SELECT COUNT(*)::int AS total FROM leads ${whereClause}`,
+    values
+  );
+  const total = countResult.rows[0]?.total ?? 0;
+
+  const statusResult = await db.query(
+    `SELECT status, COUNT(*)::int AS count FROM leads ${whereClause} GROUP BY status`,
+    values
+  );
+  const statusCounts: Record<string, number> = {
+    "Yeni": 0,
+    "Arandı": 0,
+    "Cevap Yok": 0,
+    "Bekliyor": 0,
+    "Satıldı": 0,
+  };
+  for (const row of statusResult.rows as { status: string; count: number }[]) {
+    if (row.status) {
+      statusCounts[row.status] = row.count;
+    }
+  }
+
+  let query = `SELECT
        id,
        name,
        turname,
@@ -47,15 +99,43 @@ async function getAllLeads() {
        created_at AS "createdAt",
        status_updated_at AS "statusUpdatedAt"
      FROM leads
-     ORDER BY touched ASC, created_at`
-  );
-  return result.rows as Lead[];
+     ${whereClause}
+     ORDER BY touched ASC, created_at`;
+
+  const queryValues = [...values];
+
+  if (params?.limit) {
+    queryValues.push(params.limit);
+    query += ` LIMIT $${queryValues.length}`;
+  }
+
+  if (params?.offset) {
+    queryValues.push(params.offset);
+    query += ` OFFSET $${queryValues.length}`;
+  }
+
+  const result = await db.query(query, queryValues);
+  return { leads: result.rows as Lead[], total, statusCounts };
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const leads = await getAllLeads();
-    return NextResponse.json({ leads });
+    const url = new URL(request.url);
+    const limit = url.searchParams.get("limit");
+    const offset = url.searchParams.get("offset");
+    const search = url.searchParams.get("search");
+    const status = url.searchParams.get("status");
+    const person = url.searchParams.get("person");
+
+    const result = await getAllLeads({
+      limit: limit ? parseInt(limit, 10) : undefined,
+      offset: offset ? parseInt(offset, 10) : undefined,
+      search: search || undefined,
+      status: status || undefined,
+      person: person || undefined,
+    });
+
+    return NextResponse.json({ leads: result.leads, total: result.total, statusCounts: result.statusCounts });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Bilinmeyen bir sunucu hatası oluştu.";
     return NextResponse.json({ error: message }, { status: 500 });
