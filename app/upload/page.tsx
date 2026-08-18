@@ -339,10 +339,82 @@ export default function UploadPage() {
       </div>
 
       <div className="card">
-        <p>Excel dosyanızda personel ataması, durum ve not alanları varsa bu dosyayı yükleyebilirsiniz.</p>
+        <p>Excel dosyanızı aşağıdaki formata uygun şekilde hazırlayın ve yükleyin.</p>
         <input type="file" accept=".xlsx,.xls" onChange={handleFileUpload} />
         {uploadError && <p style={{ color: "#dc2626", marginTop: 12 }}>{uploadError}</p>}
         {uploadMessage && <p style={{ color: "#16a34a", marginTop: 12 }}>{uploadMessage}</p>}
+      </div>
+
+      {/* Excel Format Rehberi */}
+      <div className="card" style={{ marginTop: 24 }}>
+        <div style={{ marginBottom: 16 }}>
+          <span className="section-kicker">Yükleme Rehberi</span>
+          <h2 style={{ margin: "8px 0 4px" }}>Excel Formatı</h2>
+          <p className="muted-text" style={{ margin: 0 }}>
+            Aşağıdaki sütun başlıklarından birini kullanarak Excel dosyanızı hazırlayın. Sütun sırası önemli değildir.
+          </p>
+        </div>
+
+        <div style={{ overflowX: "auto" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
+            <thead>
+              <tr style={{ borderBottom: "2px solid #e2e8f0", textAlign: "left" }}>
+                <th style={{ padding: "10px 12px", fontWeight: 700, color: "#1e293b" }}>Alan</th>
+                <th style={{ padding: "10px 12px", fontWeight: 700, color: "#1e293b" }}>Kabul Edilen Sütun Başlıkları</th>
+                <th style={{ padding: "10px 12px", fontWeight: 700, color: "#1e293b" }}>Zorunlu</th>
+                <th style={{ padding: "10px 12px", fontWeight: 700, color: "#1e293b" }}>Örnek</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr style={{ borderBottom: "1px solid #f1f5f9" }}>
+                <td style={{ padding: "10px 12px", fontWeight: 600 }}>Ad Soyad</td>
+                <td style={{ padding: "10px 12px" }}>ad, isim, name, full name</td>
+                <td style={{ padding: "10px 12px" }}>Evet</td>
+                <td style={{ padding: "10px 12px" }}>Ahmet Yılmaz</td>
+              </tr>
+              <tr style={{ borderBottom: "1px solid #f1f5f9" }}>
+                <td style={{ padding: "10px 12px", fontWeight: 600 }}>Tur Adı</td>
+                <td style={{ padding: "10px 12px" }}>tur, turname, tura, tur adı, tur adi</td>
+                <td style={{ padding: "10px 12px" }}>Hayır</td>
+                <td style={{ padding: "10px 12px" }}>Kış Turu 2026</td>
+              </tr>
+              <tr style={{ borderBottom: "1px solid #f1f5f9" }}>
+                <td style={{ padding: "10px 12px", fontWeight: 600 }}>Telefon</td>
+                <td style={{ padding: "10px 12px" }}>telefon, phone, cep, telefon no</td>
+                <td style={{ padding: "10px 12px" }}>Hayır</td>
+                <td style={{ padding: "10px 12px" }}>0532 123 45 67</td>
+              </tr>
+              <tr style={{ borderBottom: "1px solid #f1f5f9" }}>
+                <td style={{ padding: "10px 12px", fontWeight: 600 }}>Durum</td>
+                <td style={{ padding: "10px 12px" }}>durum, status, aranıp, arandı, cevap</td>
+                <td style={{ padding: "10px 12px" }}>Hayır</td>
+                <td style={{ padding: "10px 12px" }}>Yeni, Arandı, Cevap Yok, Bekliyor, Satıldı</td>
+              </tr>
+              <tr style={{ borderBottom: "1px solid #f1f5f9" }}>
+                <td style={{ padding: "10px 12px", fontWeight: 600 }}>Personel</td>
+                <td style={{ padding: "10px 12px" }}>personel, salesperson, assigned to, atanan, sorumlu, temsilci</td>
+                <td style={{ padding: "10px 12px" }}>Hayır</td>
+                <td style={{ padding: "10px 12px" }}>NAZLICAN TUĞAL</td>
+              </tr>
+              <tr style={{ borderBottom: "1px solid #f1f5f9" }}>
+                <td style={{ padding: "10px 12px", fontWeight: 600 }}>Not</td>
+                <td style={{ padding: "10px 12px" }}>not, notes, açıklama, yorum</td>
+                <td style={{ padding: "10px 12px" }}>Hayır</td>
+                <td style={{ padding: "10px 12px" }}>Müşteri pazartesi arayacak</td>
+              </tr>
+              <tr>
+                <td style={{ padding: "10px 12px", fontWeight: 600 }}>ID</td>
+                <td style={{ padding: "10px 12px" }}>id, lead id, leadid, lead</td>
+                <td style={{ padding: "10px 12px" }}>Hayır</td>
+                <td style={{ padding: "10px 12px" }}>L-001</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div style={{ marginTop: 16, padding: "12px 16px", borderRadius: 12, background: "#f8fafc", border: "1px solid #e2e8f0", fontSize: 13, color: "#475569" }}>
+          <strong style={{ color: "#1e293b" }}>Not:</strong> Personel sütunu boş veya tanınmayan bir isim içeriyorsa, leadler otomatik olarak tüm personellere sırayla dağıtılır. Durum sütunu boşsa lead "Yeni" olarak kaydedilir.
+        </div>
       </div>
 
       {/* Veri Export */}
