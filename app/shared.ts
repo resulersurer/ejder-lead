@@ -3,7 +3,7 @@ export type LeadStatus = "Yeni" | "Arandı" | "Cevap Yok" | "Bekliyor" | "Satıl
 export type Lead = {
   id: string;
   name: string;
-  company: string;
+  turname: string;
   phone: string;
   status: LeadStatus;
   salesPerson: string;

@@ -152,7 +152,7 @@ export default function HomePage() {
         .filter((lead) => {
           const matchesSearch =
             lead.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            lead.company.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            lead.turname.toLowerCase().includes(searchTerm.toLowerCase()) ||
             lead.phone.includes(searchTerm);
           const matchesStatus = selectedStatus === "all" || lead.status === selectedStatus;
           return matchesSearch && matchesStatus;
@@ -373,7 +373,7 @@ export default function HomePage() {
           <label htmlFor="search">Ara</label>
           <input
             id="search"
-            placeholder="İsim, şirket veya telefon..."
+            placeholder="İsim, tur veya telefon..."
             value={searchTerm}
             onChange={(event) => setSearchTerm(event.target.value)}
           />
@@ -410,7 +410,9 @@ export default function HomePage() {
                     )}
                   </div>
                   <div className="lead-phone-container">
-                    <p className="lead-phone-text">{lead.phone || "Telefon bilgisi yok"}</p>
+                    <p className="lead-phone-text">
+                      {lead.turname ? `Tur: ${lead.turname}` : "Tur bilgisi yok"} • {lead.phone || "Telefon bilgisi yok"}
+                    </p>
                     {lead.phone && (
                       <button 
                         type="button"

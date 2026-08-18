@@ -71,6 +71,7 @@ export async function ensureLeadsTable() {
       id TEXT PRIMARY KEY,
       name TEXT NOT NULL,
       company TEXT,
+      turname TEXT,
       phone TEXT,
       status TEXT,
       sales_person TEXT,
@@ -89,6 +90,11 @@ export async function ensureLeadsTable() {
   await db.query(`
     ALTER TABLE leads
     ADD COLUMN IF NOT EXISTS status_updated_at TIMESTAMPTZ;
+  `);
+
+  await db.query(`
+    ALTER TABLE leads
+    ADD COLUMN IF NOT EXISTS turname TEXT;
   `);
 
   await db.query(`

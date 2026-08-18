@@ -4,7 +4,7 @@ import { db, ensureLeadsTable } from "../../../lib/db";
 type Lead = {
   id: string;
   name: string;
-  company: string;
+  turname: string;
   phone: string;
   status: string;
   salesPerson: string;
@@ -38,7 +38,7 @@ async function getAllLeads() {
     `SELECT
        id,
        name,
-       company,
+       turname,
        phone,
        status,
        sales_person AS "salesPerson",
@@ -75,17 +75,17 @@ export async function POST(request: NextRequest) {
       for (const lead of leads) {
         const status = normalizeLeadStatus(lead.status);
         await client.query(
-          `INSERT INTO leads (id, name, company, phone, status, sales_person, notes, touched)
+          `INSERT INTO leads (id, name, turname, phone, status, sales_person, notes, touched)
            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
            ON CONFLICT (id) DO UPDATE SET
              name = EXCLUDED.name,
-             company = EXCLUDED.company,
+             turname = EXCLUDED.turname,
              phone = EXCLUDED.phone,
              status = EXCLUDED.status,
              sales_person = EXCLUDED.sales_person,
              notes = EXCLUDED.notes,
              touched = COALESCE(leads.touched, EXCLUDED.touched, false)`,
-          [lead.id, lead.name, lead.company, lead.phone, status, lead.salesPerson, lead.notes, lead.touched ?? false]
+          [lead.id, lead.name, lead.turname, lead.phone, status, lead.salesPerson, lead.notes, lead.touched ?? false]
         );
       }
 
@@ -115,11 +115,11 @@ export async function PATCH(request: NextRequest) {
     await ensureLeadsTable();
     const status = normalizeLeadStatus(lead.status);
     const result = await db.query(
-      `INSERT INTO leads (id, name, company, phone, status, sales_person, notes, touched, status_updated_at)
+      `INSERT INTO leads (id, name, turname, phone, status, sales_person, notes, touched, status_updated_at)
            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW())
            ON CONFLICT (id) DO UPDATE SET
              name = EXCLUDED.name,
-             company = EXCLUDED.company,
+             turname = EXCLUDED.turname,
              phone = EXCLUDED.phone,
              status = EXCLUDED.status,
              sales_person = EXCLUDED.sales_person,
@@ -132,7 +132,7 @@ export async function PATCH(request: NextRequest) {
            RETURNING
              id,
              name,
-             company,
+             turname,
              phone,
              status,
              sales_person AS "salesPerson",
@@ -140,7 +140,7 @@ export async function PATCH(request: NextRequest) {
              touched,
              created_at AS "createdAt",
              status_updated_at AS "statusUpdatedAt"`,
-      [lead.id, lead.name, lead.company, lead.phone, status, lead.salesPerson, lead.notes, lead.touched ?? true]
+      [lead.id, lead.name, lead.turname, lead.phone, status, lead.salesPerson, lead.notes, lead.touched ?? true]
     );
 
     return NextResponse.json({ lead: result.rows[0] });

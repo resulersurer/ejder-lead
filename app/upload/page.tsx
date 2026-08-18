@@ -21,14 +21,14 @@ async function uploadLeadsForPerson(
     const importedLeads: Lead[] = rows.map((row, index) => {
       const id = getRowValue(row, ["id", "lead id", "leadid", "lead"]);
       const name = getRowValue(row, ["ad", "isim", "name", "full name"]) || `Lead ${index + 1}`;
-      const company = getRowValue(row, ["şirket", "company", "firma"]);
+      const turname = getRowValue(row, ["tur", "turname", "tura", "tur adı", "tur adi"]);
       const phone = getRowValue(row, ["telefon", "phone", "cep", "telefon no"]);
       const status = normalizeStatus(getRowValue(row, ["durum", "status", "aranıp", "arandı", "cevap"]));
       const notes = getRowValue(row, ["not", "notes", "açıklama", "yorum"]);
       return {
         id: id || `lead-${Date.now()}-${index}`,
         name,
-        company,
+        turname,
         phone,
         status,
         salesPerson: personName,
@@ -130,7 +130,7 @@ export default function UploadPage() {
       const importedLeads: Lead[] = rows.map((row, index) => {
         const id = getRowValue(row, ["id", "lead id", "leadid", "lead"]);
         const name = getRowValue(row, ["ad", "isim", "name", "full name"]) || `Lead ${index + 1}`;
-        const company = getRowValue(row, ["şirket", "company", "firma"]);
+        const turname = getRowValue(row, ["tur", "turname", "tura", "tur adı", "tur adi"]);
         const phone = getRowValue(row, ["telefon", "phone", "cep", "telefon no"]);
         const salesPerson = findSalesPerson(
           getRowValue(row, ["personel", "salesperson", "assigned to", "atanan", "sorumlu", "temsilci"])
@@ -141,7 +141,7 @@ export default function UploadPage() {
         return {
           id: id || `lead-${Date.now()}-${index}`,
           name,
-          company,
+          turname,
           phone,
           status,
           salesPerson,
@@ -254,7 +254,7 @@ export default function UploadPage() {
       const exportData = leads.map((lead) => ({
         "ID": lead.id,
         "Ad Soyad": lead.name,
-        "Şirket": lead.company,
+        "Tur Adı": lead.turname,
         "Telefon": lead.phone,
         "Durum": lead.status,
         "Personel": lead.salesPerson,
@@ -272,7 +272,7 @@ export default function UploadPage() {
       worksheet["!cols"] = [
         { wch: 20 }, // ID
         { wch: 25 }, // Ad Soyad
-        { wch: 25 }, // Şirket
+        { wch: 20 }, // Tur Adı
         { wch: 18 }, // Telefon
         { wch: 12 }, // Durum
         { wch: 25 }, // Personel
