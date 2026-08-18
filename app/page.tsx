@@ -70,6 +70,7 @@ export default function HomePage() {
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const offsetRef = useRef(0);
+  const isLoadingRef = useRef(false);
 
   const currentPerson = useMemo(
     () => salesPeople.find((person) => person.id === currentPersonId) ?? null,
@@ -85,7 +86,8 @@ export default function HomePage() {
   }, [searchTerm]);
 
   const fetchLeads = useCallback(async (reset = true) => {
-    if (isLoading) return;
+    if (isLoadingRef.current) return;
+    isLoadingRef.current = true;
     setIsLoading(true);
 
     try {
@@ -120,9 +122,10 @@ export default function HomePage() {
     } catch (error) {
       console.error("Leads fetch failed", error);
     } finally {
+      isLoadingRef.current = false;
       setIsLoading(false);
     }
-  }, [debouncedSearch, selectedStatus, currentPersonId, currentPerson, isLoading]);
+  }, [debouncedSearch, selectedStatus, currentPersonId, currentPerson]);
 
   // Filtreler değiştiğinde yeniden yükle
   useEffect(() => {
@@ -130,7 +133,7 @@ export default function HomePage() {
   }, [fetchLeads]);
 
   const loadMore = async () => {
-    if (isLoadingMore || isLoading) return;
+    if (isLoadingMore || isLoadingRef.current) return;
     setIsLoadingMore(true);
     try {
       const params = new URLSearchParams();
