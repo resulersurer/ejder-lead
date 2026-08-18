@@ -75,6 +75,11 @@ async function uploadLeadsForPerson(
 }
 
 export default function UploadPage() {
+  const [isUnlocked, setIsUnlocked] = useState(false);
+  const [password, setPassword] = useState("");
+  const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [isVerifying, setIsVerifying] = useState(false);
+
   const [leads, setLeads] = useState<Lead[]>([]);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [uploadMessage, setUploadMessage] = useState<string | null>(null);
@@ -120,6 +125,43 @@ export default function UploadPage() {
     () => leads.filter((lead) => lead.status === "Cevap Yok").map((lead) => lead.id),
     [leads]
   );
+
+  const handlePasswordSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!password || isVerifying) return;
+
+    setPasswordError(null);
+    setIsVerifying(true);
+
+    try {
+      const response = await fetch("/api/verify-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password }),
+      });
+
+      if (!response.ok) {
+        const text = await response.text();
+        let message = "Hatalı şifre.";
+        try {
+          const payload = JSON.parse(text);
+          message = payload.error || message;
+        } catch {
+          if (text) message = text;
+        }
+        throw new Error(message);
+      }
+
+      setIsUnlocked(true);
+      setPassword("");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Şifre doğrulanamadı.";
+      setPasswordError(message);
+      console.error(error);
+    } finally {
+      setIsVerifying(false);
+    }
+  };
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -329,6 +371,79 @@ export default function UploadPage() {
       setIsDeletingNoAnswer(false);
     }
   };
+
+  if (!isUnlocked) {
+    return (
+      <main className="container">
+        <div className="header">
+          <div>
+            <h1>Veri Yükle</h1>
+            <p>Bu sayfaya erişmek için şifre girmeniz gerekmektedir.</p>
+          </div>
+        </div>
+
+        <div className="card" style={{ maxWidth: 420, margin: "0 auto" }}>
+          <div style={{ textAlign: "center", marginBottom: 20 }}>
+            <div style={{
+              width: 48,
+              height: 48,
+              borderRadius: 12,
+              background: "#f1f5f9",
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: 24,
+              marginBottom: 12,
+            }}>
+              🔒
+            </div>
+            <h2 style={{ margin: "0 0 4px" }}>Şifre Gerekli</h2>
+            <p className="muted-text" style={{ margin: 0 }}>
+              Veri yükleme sayfasına erişmek için şifrenizi girin.
+            </p>
+          </div>
+
+          <form onSubmit={handlePasswordSubmit} style={{ display: "grid", gap: 16 }}>
+            <div>
+              <label htmlFor="upload-password" style={{ fontWeight: 700, fontSize: 13, color: "#1e293b" }}>
+                Şifre
+              </label>
+              <input
+                id="upload-password"
+                type="password"
+                value={password}
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  setPasswordError(null);
+                }}
+                placeholder="••••••••"
+                autoFocus
+                disabled={isVerifying}
+              />
+            </div>
+
+            {passwordError && (
+              <div style={{
+                padding: "12px 16px",
+                borderRadius: 12,
+                background: "#fff1f2",
+                border: "1px solid #fecdd3",
+                color: "#be123c",
+                fontSize: 14,
+                fontWeight: 500,
+              }}>
+                ⚠️ {passwordError}
+              </div>
+            )}
+
+            <button className="primary" type="submit" disabled={!password || isVerifying}>
+              {isVerifying ? "Doğrulanıyor..." : "Giriş Yap"}
+            </button>
+          </form>
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="container">
