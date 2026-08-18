@@ -100,7 +100,11 @@ async function getAllLeads(params?: {
        status_updated_at AS "statusUpdatedAt"
      FROM leads
      ${whereClause}
-     ORDER BY touched ASC, created_at`;
+     ORDER BY
+       (NOT touched AND status = 'Yeni') DESC,
+       (turname IS NOT NULL AND turname != '') DESC,
+       touched ASC,
+       created_at`;
 
   const queryValues = [...values];
 
