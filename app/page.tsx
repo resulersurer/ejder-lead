@@ -115,6 +115,7 @@ export default function HomePage() {
   const [currentPerson, setCurrentPerson] = useState<SalesPerson>(salesPeople[0]);
   const [leads, setLeads] = useState<Lead[]>(initialLeads);
   const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState<"All" | Lead["status"]>("All");
   const [showAllLeads, setShowAllLeads] = useState(false);
   const [modalState, setModalState] = useState<EditModalState | null>(null);
   const [isDeletingNoAnswer, setIsDeletingNoAnswer] = useState(false);
@@ -164,15 +165,19 @@ export default function HomePage() {
     [leads, personLeads, showAllLeads]
   );
 
+  const normalizedSearchTerm = normalizeKey(searchTerm);
+
   const filteredLeads = useMemo(
     () =>
-      displayedLeads.filter(
-        (lead) =>
-          lead.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          lead.company.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          lead.phone.includes(searchTerm)
-      ),
-    [displayedLeads, searchTerm]
+      displayedLeads.filter((lead) => {
+        const searchableText = normalizeKey(
+          `${lead.name} ${lead.company} ${lead.phone} ${lead.notes}`
+        );
+        const matchesSearch = !normalizedSearchTerm || searchableText.includes(normalizedSearchTerm);
+        const matchesStatus = statusFilter === "All" || lead.status === statusFilter;
+        return matchesSearch && matchesStatus;
+      }),
+    [displayedLeads, normalizedSearchTerm, statusFilter]
   );
 
   const counts = useMemo(
@@ -277,16 +282,59 @@ export default function HomePage() {
       <div className="grid" style={{ marginTop: 24 }}>
         <div className="card">
           <h2>Leadleri filtrele</h2>
-          <label htmlFor="search">Ara</label>
-          <input
-            id="search"
-            placeholder="İsim, şirket veya telefon..."
-            value={searchTerm}
-            onChange={(event) => setSearchTerm(event.target.value)}
-          />
-          <p style={{ marginTop: 12 }}>
-            Gösterilen lead: <strong>{filteredLeads.length}</strong> / {personLeads.length}
-          </p>
+          <div className="filter-row">
+            <div className="filter-field">
+              <label htmlFor="search">Ara</label>
+              <input
+                id="search"
+                placeholder="İsim, şirket, telefon veya not..."
+                value={searchTerm}
+                onChange={(event) => setSearchTerm(event.target.value)}
+              />
+            </div>
+            <div className="filter-field">
+              <label htmlFor="status-filter">Durum</label>
+              <select
+                id="status-filter"
+                value={statusFilter}
+                onChange={(event) => setStatusFilter(event.target.value as "All" | Lead["status"])}
+              >
+                <option value="All">Tüm durumlar</option>
+                <option value="New">Yeni</option>
+                <option value="Called">Arandı</option>
+                <option value="No Answer">Cevap yok</option>
+                <option value="Waiting">Bekliyor</option>
+              </select>
+            </div>
+            <div className="filter-field">
+              <label htmlFor="lead-scope">Kapsam</label>
+              <select
+                id="lead-scope"
+                value={showAllLeads ? "all" : "person"}
+                onChange={(event) => setShowAllLeads(event.target.value === "all")}
+              >
+                <option value="person">Seçili personel</option>
+                <option value="all">Tüm leadler</option>
+              </select>
+            </div>
+          </div>
+          <div className="filter-summary">
+            <p>
+              Gösterilen lead: <strong>{filteredLeads.length}</strong> / {displayedLeads.length}
+            </p>
+            {(searchTerm || statusFilter !== "All" || showAllLeads) && (
+              <button
+                className="secondary"
+                onClick={() => {
+                  setSearchTerm("");
+                  setStatusFilter("All");
+                  setShowAllLeads(false);
+                }}
+              >
+                Filtreleri temizle
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
