@@ -431,6 +431,15 @@ button:disabled {
   opacity: 0.55;
 }
 
+.purchase-match { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)) auto; align-items: center; gap: 12px; margin-top: 12px; padding: 12px 14px; border: 1px solid #bbf7d0; border-radius: 12px; background: #f0fdf4; }
+.purchase-match > div { display: grid; gap: 3px; }
+.purchase-match strong { color: #166534; font-size: 11px; text-transform: uppercase; }
+.purchase-match span { font-size: 13px; }
+.purchase-badge { padding: 6px 9px; border-radius: 999px; background: #dcfce7; color: #166534; font-weight: 700; }
+.tour-data-help,.tour-data-error { margin: 7px 0 0; font-size: 12px; }
+.tour-data-help { color: #64748b; }.tour-data-error { color: #b91c1c; }
+@media(max-width:760px){.purchase-match{grid-template-columns:1fr}.purchase-badge{width:fit-content}}
+
 input, select, textarea {
   width: 100%;
   border: 1px solid #cbd5e1;

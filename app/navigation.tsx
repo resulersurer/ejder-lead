@@ -96,9 +96,9 @@ export default function Navigation() {
               </div>
             );
           })}
+          <a className="top-nav-link" href={process.env.NEXT_PUBLIC_TUR_TRACKER_URL || "https://turtakipv2.vercel.app"} target="_blank" rel="noreferrer">TurTakip ↗</a>
         </div>
       </div>
     </header>
   );
 }
-
