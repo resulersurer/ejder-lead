@@ -9,12 +9,16 @@ type Lead = {
   status: string;
   salesPerson: string;
   notes: string;
+  interestedTourId: string;
+  interestedTourName: string;
 };
 
 async function getAllLeads() {
   await ensureLeadsTable();
   const result = await db.query(
-    `SELECT id, name, company, phone, status, sales_person AS "salesPerson", notes FROM leads ORDER BY created_at`
+    `SELECT id, name, company, phone, status, sales_person AS "salesPerson", notes,
+      interested_tour_id AS "interestedTourId", interested_tour_name AS "interestedTourName"
+     FROM leads ORDER BY created_at`
   );
   return result.rows as Lead[];
 }
@@ -41,16 +45,18 @@ export async function POST(request: NextRequest) {
 
       for (const lead of leads) {
         await client.query(
-          `INSERT INTO leads (id, name, company, phone, status, sales_person, notes)
-           VALUES ($1, $2, $3, $4, $5, $6, $7)
+          `INSERT INTO leads (id, name, company, phone, status, sales_person, notes, interested_tour_id, interested_tour_name)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
            ON CONFLICT (id) DO UPDATE SET
              name = EXCLUDED.name,
              company = EXCLUDED.company,
              phone = EXCLUDED.phone,
              status = EXCLUDED.status,
              sales_person = EXCLUDED.sales_person,
-             notes = EXCLUDED.notes`,
-          [lead.id, lead.name, lead.company, lead.phone, lead.status, lead.salesPerson, lead.notes]
+             notes = EXCLUDED.notes,
+             interested_tour_id = EXCLUDED.interested_tour_id,
+             interested_tour_name = EXCLUDED.interested_tour_name`,
+          [lead.id, lead.name, lead.company, lead.phone, lead.status, lead.salesPerson, lead.notes, lead.interestedTourId || null, lead.interestedTourName || null]
         );
       }
 
@@ -79,16 +85,18 @@ export async function PATCH(request: NextRequest) {
 
     await ensureLeadsTable();
     await db.query(
-      `INSERT INTO leads (id, name, company, phone, status, sales_person, notes)
-           VALUES ($1, $2, $3, $4, $5, $6, $7)
+      `INSERT INTO leads (id, name, company, phone, status, sales_person, notes, interested_tour_id, interested_tour_name)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
            ON CONFLICT (id) DO UPDATE SET
              name = EXCLUDED.name,
              company = EXCLUDED.company,
              phone = EXCLUDED.phone,
              status = EXCLUDED.status,
              sales_person = EXCLUDED.sales_person,
-             notes = EXCLUDED.notes`,
-      [lead.id, lead.name, lead.company, lead.phone, lead.status, lead.salesPerson, lead.notes]
+             notes = EXCLUDED.notes,
+             interested_tour_id = EXCLUDED.interested_tour_id,
+             interested_tour_name = EXCLUDED.interested_tour_name`,
+      [lead.id, lead.name, lead.company, lead.phone, lead.status, lead.salesPerson, lead.notes, lead.interestedTourId || null, lead.interestedTourName || null]
     );
 
     return NextResponse.json({ lead });

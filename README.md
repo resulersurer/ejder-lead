@@ -10,6 +10,24 @@ Basit bir Next.js lead yönetimi uygulaması.
 - Lead için not ekleme
 - Excel dosyası yükleyerek leadleri içe aktarma
 - Yerel depolamada (localStorage) kayıtlı leadler
+- TurTakip'ten güncel tur ve kesin rezervasyon verilerini alma
+- Telefon numarasıyla lead-satın alma eşleştirmesi
+- Lead için ilgilenilen tur seçimi ve ödeme durumu gösterimi
+- Yönetici şifresiyle korunan müşteri ekranı
+
+## TurTakip Entegrasyonu
+
+İki Vercel projesinde aynı `INTEGRATION_API_KEY` kullanılmalıdır. Ejder Lead için gereken değişkenler:
+
+```bash
+INTEGRATION_API_KEY="shared-long-random-string"
+TUR_TRACKER_API_URL="https://turtakipv2.vercel.app"
+NEXT_PUBLIC_TUR_TRACKER_URL="https://turtakipv2.vercel.app"
+ADMIN_COOKIE_SECRET="replace-with-a-long-random-string"
+ADMIN_PASSWORD="change-me"
+```
+
+`ADMIN_PASSWORD` tanımlı değilse mevcut `UPLOAD_PASSWORD` yönetici girişinde kullanılır. TurTakip, kesin rezervasyonları ve ödeme özetlerini korumalı API üzerinden sağlar; Ejder Lead bu API'yi yalnızca kendi sunucusundan çağırır.
 
 ## Kurulum
 

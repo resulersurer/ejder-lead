@@ -76,5 +76,7 @@ export async function ensureLeadsTable() {
       notes TEXT,
       created_at TIMESTAMPTZ DEFAULT NOW()
     );
+    ALTER TABLE leads ADD COLUMN IF NOT EXISTS interested_tour_id TEXT;
+    ALTER TABLE leads ADD COLUMN IF NOT EXISTS interested_tour_name TEXT;
   `);
 }

@@ -10,7 +10,13 @@ type Lead = {
   status: "New" | "Called" | "No Answer" | "Waiting";
   salesPerson: string;
   notes: string;
+  interestedTourId: string;
+  interestedTourName: string;
 };
+
+type Tour = { id: string; name: string; departures: Array<{ id: string; startDate: string }> };
+type Purchase = { code: string; contactPhone: string; seats: number; departure: { startDate: string; tour: { id: string; name: string } }; finance: null | { totalAmount: number; paidAmount: number; remainingAmount: number; currency: string; paymentStatus: string } };
+type TourData = { generatedAt: string; tours: Tour[]; purchases: Purchase[] };
 
 type SalesPerson = {
   id: string;
@@ -21,7 +27,12 @@ type EditModalState = {
   lead: Lead | null;
   notes: string;
   status: Lead["status"];
+  interestedTourId: string;
 };
+
+const normalizePhone = (value: string) => value.replace(/\D/g, "").slice(-10);
+const tourDate = (value: string) => new Intl.DateTimeFormat("tr-TR", { day: "2-digit", month: "short", year: "numeric" }).format(new Date(value));
+const paymentLabels: Record<string, string> = { PAID: "Ödendi", PARTIAL: "Kısmi ödeme", UNPAID: "Ödenmedi", NO_PLAN: "Ödeme planı yok" };
 
 const salesPeople: SalesPerson[] = [
   { id: "p-1", name: "NAZLICAN TUĞAL" },
@@ -118,6 +129,8 @@ export default function HomePage() {
   const [showAllLeads, setShowAllLeads] = useState(false);
   const [modalState, setModalState] = useState<EditModalState | null>(null);
   const [isDeletingNoAnswer, setIsDeletingNoAnswer] = useState(false);
+  const [tourData, setTourData] = useState<TourData>({ generatedAt: "", tours: [], purchases: [] });
+  const [integrationError, setIntegrationError] = useState("");
 
   useEffect(() => {
     const fetchLeads = async () => {
@@ -137,6 +150,23 @@ export default function HomePage() {
     };
 
     fetchLeads();
+  }, []);
+
+  useEffect(() => {
+    let alive = true;
+    const load = async () => {
+      try {
+        const response = await fetch("/api/tour-data", { cache: "no-store" });
+        const body = await response.json();
+        if (!response.ok) throw new Error(body.error || "Tur verileri alınamadı.");
+        if (alive) { setTourData(body); setIntegrationError(""); }
+      } catch (error) {
+        if (alive) setIntegrationError(error instanceof Error ? error.message : "Tur verileri alınamadı.");
+      }
+    };
+    void load();
+    const timer = window.setInterval(() => void load(), 60_000);
+    return () => { alive = false; window.clearInterval(timer); };
   }, []);
 
   const saveLeadToDb = async (lead: Lead) => {
@@ -185,8 +215,20 @@ export default function HomePage() {
     [displayedLeads]
   );
 
+  const purchasesByPhone = useMemo(() => {
+    const result = new Map<string, Purchase[]>();
+    for (const purchase of tourData.purchases) {
+      const phone = normalizePhone(purchase.contactPhone);
+      if (!phone) continue;
+      result.set(phone, [...(result.get(phone) || []), purchase]);
+    }
+    return result;
+  }, [tourData.purchases]);
+
+  const purchasedLeadCount = useMemo(() => displayedLeads.filter((lead) => purchasesByPhone.has(normalizePhone(lead.phone))).length, [displayedLeads, purchasesByPhone]);
+
   const openModal = (lead: Lead) => {
-    setModalState({ lead, notes: lead.notes, status: lead.status });
+    setModalState({ lead, notes: lead.notes, status: lead.status, interestedTourId: lead.interestedTourId || "" });
   };
 
   const closeModal = () => setModalState(null);
@@ -194,7 +236,8 @@ export default function HomePage() {
   const saveLead = async () => {
     if (!modalState?.lead) return;
 
-    const updatedLead = { ...modalState.lead, status: modalState.status, notes: modalState.notes };
+    const selectedTour = tourData.tours.find((tour) => tour.id === modalState.interestedTourId);
+    const updatedLead = { ...modalState.lead, status: modalState.status, notes: modalState.notes, interestedTourId: selectedTour?.id || "", interestedTourName: selectedTour?.name || "" };
     setLeads((current) =>
       current.map((lead) => (lead.id === updatedLead.id ? updatedLead : lead))
     );
@@ -244,7 +287,10 @@ export default function HomePage() {
           <h1>Lead Yönetimi</h1>
           <p>Personel seçerek leadlerinizi görüntüleyin, durum güncelleyin ve not ekleyin.</p>
         </div>
-        <div style={{ minWidth: 240 }}>
+        <div className="header-actions">
+          <a className="app-link" href={process.env.NEXT_PUBLIC_TUR_TRACKER_URL || "https://turtakipv2.vercel.app/admin"} target="_blank" rel="noreferrer">TurTakip'e geç</a>
+          <button className="secondary" onClick={async () => { await fetch("/api/auth/logout", { method: "POST" }); window.location.href = "/login"; }}>Çıkış yap</button>
+          <div style={{ minWidth: 240 }}>
           <label htmlFor="sales-person">Personel seçiniz</label>
           <select
             id="sales-person"
@@ -260,6 +306,7 @@ export default function HomePage() {
               </option>
             ))}
           </select>
+          </div>
         </div>
       </div>
 
@@ -271,7 +318,9 @@ export default function HomePage() {
           <p>Aranmış lead: <strong>{counts.called}</strong></p>
           <p>Bekleyen lead: <strong>{counts.waiting}</strong></p>
           <p>Cevap alınamayan lead: <strong>{counts.noAnswer}</strong></p>
+          <p>Satın alan müşteri: <strong>{purchasedLeadCount}</strong></p>
         </div>
+        <div className="card integration-card"><h2>TurTakip bağlantısı</h2>{integrationError ? <p className="integration-error">{integrationError}</p> : <><p><strong>{tourData.tours.length}</strong> güncel tur</p><p><strong>{tourData.purchases.length}</strong> kesin rezervasyon</p><p className="muted">Veriler her dakika otomatik yenilenir.</p></>}</div>
       </div>
 
       <div className="grid" style={{ marginTop: 24 }}>
@@ -309,13 +358,15 @@ export default function HomePage() {
               <th>Telefon</th>
               <th>Personel</th>
               <th>Durum</th>
+              <th>İlgilendiği Tur</th>
+              <th>Satın Aldığı Tur</th>
               <th>Not</th>
               <th>İşlem</th>
             </tr>
           </thead>
           <tbody>
             {filteredLeads.map((lead) => (
-              <tr key={lead.id}>
+              <tr key={lead.id}>{(() => { const purchases = purchasesByPhone.get(normalizePhone(lead.phone)) || []; const latestPurchase = purchases[0]; return <>
                 <td>{lead.name}</td>
                 <td>{lead.company}</td>
                 <td>{lead.phone}</td>
@@ -333,15 +384,17 @@ export default function HomePage() {
                     {lead.status}
                   </span>
                 </td>
+                <td>{lead.interestedTourName || "—"}</td>
+                <td>{latestPurchase ? <div className="purchase-cell"><strong>{latestPurchase.departure.tour.name}</strong><span>{tourDate(latestPurchase.departure.startDate)} · {latestPurchase.code}</span><span className="badge status-purchased">Satın aldı · {latestPurchase.seats} kişi</span>{latestPurchase.finance ? <small>{paymentLabels[latestPurchase.finance.paymentStatus] || latestPurchase.finance.paymentStatus}</small> : null}</div> : "—"}</td>
                 <td>{lead.notes ? lead.notes : "—"}</td>
                 <td>
                   <button onClick={() => openModal(lead)}>Düzenle</button>
                 </td>
-              </tr>
+              </>; })()}</tr>
             ))}
             {filteredLeads.length === 0 && (
               <tr>
-                <td colSpan={7}>Seçili persona ait lead bulunamadı.</td>
+                <td colSpan={9}>Seçili persona ait lead bulunamadı.</td>
               </tr>
             )}
           </tbody>
@@ -362,6 +415,12 @@ export default function HomePage() {
               <option value="Called">Called</option>
               <option value="No Answer">No Answer</option>
               <option value="Waiting">Waiting</option>
+            </select>
+
+            <label htmlFor="interested-tour">İlgilendiği tur</label>
+            <select id="interested-tour" value={modalState.interestedTourId} onChange={(event) => setModalState((prev) => prev && { ...prev, interestedTourId: event.target.value })}>
+              <option value="">Tur seçilmedi</option>
+              {tourData.tours.map((tour) => <option value={tour.id} key={tour.id}>{tour.name}{tour.departures[0] ? ` · ${tourDate(tour.departures[0].startDate)}` : ""}</option>)}
             </select>
 
             <label htmlFor="notes">Not</label>
