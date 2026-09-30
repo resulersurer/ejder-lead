@@ -1,0 +1,49 @@
+.groups {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr));
+  align-items: start;
+  gap: 16px;
+}
+
+.group {
+  min-width: 0;
+}
+
+.heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.heading h2 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.count {
+  border-radius: 16px;
+  padding: 4px 8px;
+  background: #eef2ff;
+  color: #3730a3;
+  font-size: 13px;
+}
+
+.phones {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.phones li {
+  padding: 10px 0;
+  border-bottom: 1px solid #e2e8f0;
+  overflow-wrap: anywhere;
+}
+
+.phones li:last-child {
+  border-bottom: 0;
+}
