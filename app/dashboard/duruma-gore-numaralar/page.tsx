@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Lead, normalizeStatus, statusOptions } from "../../shared";
 import styles from "./page.module.css";
 
-export default function StatusPhonesPage() {
+export default function StatusLeadsPage() {
   const [leads, setLeads] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -48,8 +48,8 @@ export default function StatusPhonesPage() {
     <main className="container">
       <div className="header">
         <div>
-          <h1>Duruma Göre Numaralar</h1>
-          <p>Lead telefon numaraları, mevcut durumlarına göre alt alta listelenir.</p>
+          <h1>Duruma Göre Leadler</h1>
+          <p>Leadler; ad, telefon, tur ve sorumlu personel bilgileriyle mevcut durumlarına göre listelenir.</p>
         </div>
         <button type="button" onClick={() => setRefresh((value) => value + 1)} disabled={loading}>
           {loading ? "Yükleniyor…" : "Yenile"}
@@ -73,9 +73,14 @@ export default function StatusPhonesPage() {
                 {group.leads.length === 0 ? (
                   <p className="muted-text">Bu durumda lead bulunmuyor.</p>
                 ) : (
-                  <ul className={styles.phones}>
+                  <ul className={styles.leads}>
                     {group.leads.map((lead) => (
-                      <li key={lead.id}>{lead.phone?.trim() || "Telefon numarası yok"}</li>
+                      <li key={lead.id}>
+                        <strong>{lead.name?.trim() || "İsim belirtilmemiş"}</strong>
+                        <span className={styles.phone}>{lead.phone?.trim() || "Telefon numarası yok"}</span>
+                        <span className={styles.detail}>Tur: {lead.turname?.trim() || "Belirtilmemiş"}</span>
+                        <span className={styles.detail}>Personel: {lead.salesPerson?.trim() || "Atanmamış"}</span>
+                      </li>
                     ))}
                   </ul>
                 )}

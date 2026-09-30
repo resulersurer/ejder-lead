@@ -1,6 +1,6 @@
 .groups {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
   align-items: start;
   gap: 16px;
 }
@@ -31,19 +31,31 @@
   font-size: 13px;
 }
 
-.phones {
+.leads {
   list-style: none;
   margin: 0;
   padding: 0;
   font-variant-numeric: tabular-nums;
 }
 
-.phones li {
-  padding: 10px 0;
+.leads li {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px 0;
   border-bottom: 1px solid #e2e8f0;
   overflow-wrap: anywhere;
 }
 
-.phones li:last-child {
+.leads li:last-child {
   border-bottom: 0;
+}
+
+.phone {
+  font-variant-numeric: tabular-nums;
+}
+
+.detail {
+  color: #475569;
+  font-size: 13px;
 }

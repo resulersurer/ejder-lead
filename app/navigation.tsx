@@ -10,7 +10,7 @@ const navigationItems = [
     label: "Dashboard",
     icon: "dashboard",
     children: [
-      { href: "/dashboard/duruma-gore-numaralar", label: "Duruma Göre Numaralar" },
+      { href: "/dashboard/duruma-gore-numaralar", label: "Duruma Göre Leadler" },
       { href: "/dashboard/yanit-sureleri", label: "Yanıt Süreleri" },
       { href: "/dashboard/lead-biten-satiscilar", label: "Lead Biten Personel" },
     ],
