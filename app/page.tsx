@@ -19,6 +19,11 @@ type Tour = { id: string; name: string; departures: Array<{ id: string; startDat
 type Purchase = { code: string; contactPhone: string; seats: number; departure: { startDate: string; tour: { id: string; name: string } }; finance: null | { paymentStatus: string } };
 type TourData = { tours: Tour[]; purchases: Purchase[] };
 const normalizePhone = (value: string) => value.replace(/\D/g, "").slice(-10);
+const normalizeTourSearch = (value: string) => value
+  .toLocaleLowerCase("tr-TR")
+  .replace(/ı/g, "i")
+  .normalize("NFD")
+  .replace(/\p{Diacritic}/gu, "");
 const shortDate = (value: string) => new Intl.DateTimeFormat("tr-TR", { day: "2-digit", month: "short", year: "numeric" }).format(new Date(value));
 const paymentLabels: Record<string, string> = { PAID: "Ödendi", PARTIAL: "Kısmi ödeme", UNPAID: "Ödenmedi", NO_PLAN: "Ödeme planı yok" };
 
@@ -79,6 +84,14 @@ export default function HomePage() {
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [tourData, setTourData] = useState<TourData>({ tours: [], purchases: [] });
   const [tourDataError, setTourDataError] = useState("");
+  const [tourSearch, setTourSearch] = useState("");
+  const filteredTours = useMemo(() => {
+    const terms = normalizeTourSearch(tourSearch).trim().split(/\s+/).filter(Boolean);
+    return tourData.tours.filter((tour) => {
+      const name = normalizeTourSearch(tour.name);
+      return terms.every((term) => name.includes(term));
+    });
+  }, [tourData.tours, tourSearch]);
   const offsetRef = useRef(0);
   const isLoadingRef = useRef(false);
 
@@ -298,6 +311,7 @@ export default function HomePage() {
     : "--:--";
 
   const openModal = (lead: Lead) => {
+    setTourSearch("");
     setModalState({ lead, notes: lead.notes, status: lead.status, turname: lead.turname || "" });
   };
 
@@ -628,11 +642,25 @@ export default function HomePage() {
               ))}
             </select>
 
-            <label htmlFor="tour-name">İlgilendiği tur</label>
+            <label htmlFor="tour-search">İlgilendiği tur — ara</label>
+            <input
+              id="tour-search"
+              type="search"
+              placeholder="Tur veya şehir adı yazın…"
+              value={tourSearch}
+              onChange={(event) => setTourSearch(event.target.value)}
+              aria-controls="tour-name"
+              aria-describedby="tour-search-result"
+              autoComplete="off"
+            />
+            <p id="tour-search-result" className="tour-data-help" role="status">
+              {filteredTours.length ? `${filteredTours.length} tur bulundu. Aşağıdaki listeden seçin.` : "Aramanıza uygun tur bulunamadı. Farklı bir kelime deneyin."}
+            </p>
+            <label htmlFor="tour-name">Tur seçin</label>
             <select id="tour-name" value={modalState.turname} onChange={(event) => setModalState((prev) => prev && { ...prev, turname: event.target.value })}>
               <option value="">Tur seçilmedi</option>
-              {modalState.turname && !tourData.tours.some((tour) => tour.name === modalState.turname) ? <option value={modalState.turname}>{modalState.turname}</option> : null}
-              {tourData.tours.map((tour) => <option key={tour.id} value={tour.name}>{tour.name}{tour.departures[0] ? ` · ${shortDate(tour.departures[0].startDate)}` : ""}</option>)}
+              {modalState.turname && !filteredTours.some((tour) => tour.name === modalState.turname) ? <option value={modalState.turname}>{modalState.turname} (mevcut seçim)</option> : null}
+              {filteredTours.map((tour) => <option key={tour.id} value={tour.name}>{tour.name}{tour.departures[0] ? ` · ${shortDate(tour.departures[0].startDate)}` : ""}</option>)}
             </select>
             {tourDataError ? <p className="tour-data-error">{tourDataError}</p> : <p className="tour-data-help">{tourData.tours.length} güncel tur TurTakip'ten alındı.</p>}
 
