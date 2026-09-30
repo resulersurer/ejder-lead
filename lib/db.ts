@@ -98,6 +98,11 @@ export async function ensureLeadsTable() {
   `);
 
   await db.query(`
+    ALTER TABLE leads
+    ADD COLUMN IF NOT EXISTS departure_date TEXT;
+  `);
+
+  await db.query(`
     UPDATE leads
     SET status = CASE
       WHEN LOWER(TRIM(status)) = 'new' THEN 'Yeni'

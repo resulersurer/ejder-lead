@@ -13,6 +13,7 @@ type EditModalState = {
   notes: string;
   status: Lead["status"];
   turname: string;
+  departureDate: string;
 };
 
 type Tour = { id: string; name: string; departures: Array<{ id: string; startDate: string }> };
@@ -85,6 +86,13 @@ export default function HomePage() {
   const [tourData, setTourData] = useState<TourData>({ tours: [], purchases: [] });
   const [tourDataError, setTourDataError] = useState("");
   const [tourSearch, setTourSearch] = useState("");
+  const selectedTourDates = useMemo(() => {
+    const dates = tourData.tours
+      .filter((tour) => tour.name === modalState?.turname)
+      .flatMap((tour) => tour.departures.map((departure) => departure.startDate))
+      .filter((date) => Number.isFinite(Date.parse(date)));
+    return [...new Set(dates)].sort((a, b) => Date.parse(a) - Date.parse(b));
+  }, [tourData.tours, modalState?.turname]);
   const filteredTours = useMemo(() => {
     const terms = normalizeTourSearch(tourSearch).trim().split(/\s+/).filter(Boolean);
     return tourData.tours.filter((tour) => {
@@ -312,7 +320,7 @@ export default function HomePage() {
 
   const openModal = (lead: Lead) => {
     setTourSearch("");
-    setModalState({ lead, notes: lead.notes, status: lead.status, turname: lead.turname || "" });
+    setModalState({ lead, notes: lead.notes, status: lead.status, turname: lead.turname || "", departureDate: lead.departureDate || "" });
   };
 
   const closeModal = () => setModalState(null);
@@ -355,6 +363,7 @@ export default function HomePage() {
       status: modalState.status,
       notes: modalState.notes,
       turname: modalState.turname,
+      departureDate: modalState.departureDate || null,
       touched: true,
       statusUpdatedAt: statusChanged ? new Date().toISOString() : modalState.lead.statusUpdatedAt,
     };
@@ -535,6 +544,9 @@ export default function HomePage() {
                     <div className="lead-phone-container">
                       <p className="lead-phone-text">
                         {lead.turname ? `Tur: ${lead.turname}` : "Tur bilgisi yok"} • {lead.phone || "Telefon bilgisi yok"}
+                        {lead.departureDate && Number.isFinite(Date.parse(lead.departureDate)) ? (
+                          <span style={{ display: "block" }}>Tur tarihi: {shortDate(lead.departureDate)}</span>
+                        ) : null}
                       </p>
                       {lead.phone && (
                         <button 
@@ -657,11 +669,29 @@ export default function HomePage() {
               {filteredTours.length ? `${filteredTours.length} tur bulundu. Aşağıdaki listeden seçin.` : "Aramanıza uygun tur bulunamadı. Farklı bir kelime deneyin."}
             </p>
             <label htmlFor="tour-name">Tur seçin</label>
-            <select id="tour-name" value={modalState.turname} onChange={(event) => setModalState((prev) => prev && { ...prev, turname: event.target.value })}>
+            <select id="tour-name" value={modalState.turname} onChange={(event) => setModalState((prev) => prev && { ...prev, turname: event.target.value, departureDate: "" })}>
               <option value="">Tur seçilmedi</option>
               {modalState.turname && !filteredTours.some((tour) => tour.name === modalState.turname) ? <option value={modalState.turname}>{modalState.turname} (mevcut seçim)</option> : null}
-              {filteredTours.map((tour) => <option key={tour.id} value={tour.name}>{tour.name}{tour.departures[0] ? ` · ${shortDate(tour.departures[0].startDate)}` : ""}</option>)}
+              {filteredTours.map((tour) => <option key={tour.id} value={tour.name}>{tour.name}</option>)}
             </select>
+            <label htmlFor="tour-departure">Tur tarihi</label>
+            <select
+              id="tour-departure"
+              value={modalState.departureDate}
+              disabled={!modalState.turname}
+              onChange={(event) => setModalState((prev) => prev && { ...prev, departureDate: event.target.value })}
+            >
+              <option value="">{!modalState.turname ? "Önce tur seçin" : "Tarih seçilmedi"}</option>
+              {modalState.departureDate && !selectedTourDates.includes(modalState.departureDate) ? (
+                <option value={modalState.departureDate}>
+                  {Number.isFinite(Date.parse(modalState.departureDate)) ? shortDate(modalState.departureDate) : modalState.departureDate} (kayıtlı tarih)
+                </option>
+              ) : null}
+              {selectedTourDates.map((date) => <option key={date} value={date}>{shortDate(date)}</option>)}
+            </select>
+            {modalState.turname && selectedTourDates.length === 0 && !tourDataError ? (
+              <p className="tour-data-help">Bu tur için güncel tarih bulunmuyor.</p>
+            ) : null}
             {tourDataError ? <p className="tour-data-error">{tourDataError}</p> : <p className="tour-data-help">{tourData.tours.length} güncel tur TurTakip'ten alındı.</p>}
 
             <label htmlFor="notes">Not</label>
