@@ -85,6 +85,9 @@ export default function HomePage() {
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [tourData, setTourData] = useState<TourData>({ tours: [], purchases: [] });
   const [tourDataError, setTourDataError] = useState("");
+  const [tourDataLoading, setTourDataLoading] = useState(false);
+  const [tourDataUpdatedAt, setTourDataUpdatedAt] = useState<Date | null>(null);
+  const [tourDataRefresh, setTourDataRefresh] = useState(0);
   const [tourSearch, setTourSearch] = useState("");
   const selectedTourDates = useMemo(() => {
     const dates = tourData.tours
@@ -205,20 +208,42 @@ export default function HomePage() {
 
   useEffect(() => {
     let active = true;
+    let controller: AbortController | undefined;
     const loadTourData = async () => {
+      controller?.abort();
+      const requestController = new AbortController();
+      controller = requestController;
+      setTourDataLoading(true);
+      setTourDataError("");
       try {
-        const response = await fetch("/api/tour-data", { cache: "no-store" });
+        const response = await fetch("/api/tour-data", { cache: "no-store", signal: requestController.signal });
         const body = await response.json();
         if (!response.ok) throw new Error(body.error || "Tur verileri alınamadı.");
-        if (active) { setTourData(body); setTourDataError(""); }
+        if (!Array.isArray(body.tours) || !Array.isArray(body.purchases) ||
+            body.tours.some((tour: Tour) => !Array.isArray(tour.departures))) {
+          throw new Error("TurTakip tarih verileri geçerli biçimde alınamadı.");
+        }
+        if (active && !requestController.signal.aborted) {
+          setTourData(body);
+          setTourDataUpdatedAt(new Date());
+        }
       } catch (error) {
-        if (active) setTourDataError(error instanceof Error ? error.message : "Tur verileri alınamadı.");
+        if (active && !requestController.signal.aborted) setTourDataError(error instanceof Error ? error.message : "Tur verileri alınamadı.");
+      } finally {
+        if (active && !requestController.signal.aborted) setTourDataLoading(false);
       }
     };
     void loadTourData();
     const intervalId = window.setInterval(() => void loadTourData(), 60_000);
-    return () => { active = false; window.clearInterval(intervalId); };
-  }, []);
+    const refreshOnFocus = () => void loadTourData();
+    window.addEventListener("focus", refreshOnFocus);
+    return () => {
+      active = false;
+      controller?.abort();
+      window.clearInterval(intervalId);
+      window.removeEventListener("focus", refreshOnFocus);
+    };
+  }, [modalState?.lead?.id, modalState?.turname, tourDataRefresh]);
 
   const purchasesByPhone = useMemo(() => {
     const map = new Map<string, Purchase[]>();
@@ -678,10 +703,10 @@ export default function HomePage() {
             <select
               id="tour-departure"
               value={modalState.departureDate}
-              disabled={!modalState.turname}
+              disabled={!modalState.turname || tourDataLoading || Boolean(tourDataError)}
               onChange={(event) => setModalState((prev) => prev && { ...prev, departureDate: event.target.value })}
             >
-              <option value="">{!modalState.turname ? "Önce tur seçin" : "Tarih seçilmedi"}</option>
+              <option value="">{!modalState.turname ? "Önce tur seçin" : tourDataLoading ? "Tarihler TurTakip’ten alınıyor…" : "Tarih seçilmedi"}</option>
               {modalState.departureDate && !selectedTourDates.includes(modalState.departureDate) ? (
                 <option value={modalState.departureDate}>
                   {Number.isFinite(Date.parse(modalState.departureDate)) ? shortDate(modalState.departureDate) : modalState.departureDate} (kayıtlı tarih)
@@ -689,10 +714,23 @@ export default function HomePage() {
               ) : null}
               {selectedTourDates.map((date) => <option key={date} value={date}>{shortDate(date)}</option>)}
             </select>
-            {modalState.turname && selectedTourDates.length === 0 && !tourDataError ? (
-              <p className="tour-data-help">Bu tur için güncel tarih bulunmuyor.</p>
+            {modalState.turname && !tourDataLoading && !tourDataError ? (
+              <p className="tour-data-help" role="status">
+                {selectedTourDates.length === 0
+                  ? "TurTakip bu tur için güncel tarih döndürmedi."
+                  : `TurTakip’ten bu tur için ${selectedTourDates.length} güncel tarih alındı.`}
+              </p>
             ) : null}
-            {tourDataError ? <p className="tour-data-error">{tourDataError}</p> : <p className="tour-data-help">{tourData.tours.length} güncel tur TurTakip'ten alındı.</p>}
+            <button type="button" className="secondary" disabled={tourDataLoading}
+              onClick={() => setTourDataRefresh((value) => value + 1)}>
+              {tourDataLoading ? "TurTakip’ten güncelleniyor…" : "Tarihleri TurTakip’ten yenile"}
+            </button>
+            {tourDataError ? <p className="tour-data-error" role="alert">{tourDataError} Tarihler yenilenemedi; tekrar deneyin.</p> : (
+              <p className="tour-data-help">
+                {tourData.tours.length} tur
+                {tourDataUpdatedAt ? ` · Son güncelleme: ${tourDataUpdatedAt.toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}` : ""}
+              </p>
+            )}
 
             <label htmlFor="notes">Not</label>
             <textarea
