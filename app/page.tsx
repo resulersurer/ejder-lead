@@ -13,12 +13,18 @@ type EditModalState = {
   notes: string;
   status: Lead["status"];
   turname: string;
+  departureDate: string;
 };
 
 type Tour = { id: string; name: string; departures: Array<{ id: string; startDate: string }> };
 type Purchase = { code: string; contactPhone: string; seats: number; departure: { startDate: string; tour: { id: string; name: string } }; finance: null | { paymentStatus: string } };
 type TourData = { tours: Tour[]; purchases: Purchase[] };
 const normalizePhone = (value: string) => value.replace(/\D/g, "").slice(-10);
+const normalizeTourSearch = (value: string) => value
+  .toLocaleLowerCase("tr-TR")
+  .replace(/ı/g, "i")
+  .normalize("NFD")
+  .replace(/\p{Diacritic}/gu, "");
 const shortDate = (value: string) => new Intl.DateTimeFormat("tr-TR", { day: "2-digit", month: "short", year: "numeric" }).format(new Date(value));
 const paymentLabels: Record<string, string> = { PAID: "Ödendi", PARTIAL: "Kısmi ödeme", UNPAID: "Ödenmedi", NO_PLAN: "Ödeme planı yok" };
 
@@ -79,6 +85,24 @@ export default function HomePage() {
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [tourData, setTourData] = useState<TourData>({ tours: [], purchases: [] });
   const [tourDataError, setTourDataError] = useState("");
+  const [tourDataLoading, setTourDataLoading] = useState(false);
+  const [tourDataUpdatedAt, setTourDataUpdatedAt] = useState<Date | null>(null);
+  const [tourDataRefresh, setTourDataRefresh] = useState(0);
+  const [tourSearch, setTourSearch] = useState("");
+  const selectedTourDates = useMemo(() => {
+    const dates = tourData.tours
+      .filter((tour) => tour.name === modalState?.turname)
+      .flatMap((tour) => tour.departures.map((departure) => departure.startDate))
+      .filter((date) => Number.isFinite(Date.parse(date)));
+    return [...new Set(dates)].sort((a, b) => Date.parse(a) - Date.parse(b));
+  }, [tourData.tours, modalState?.turname]);
+  const filteredTours = useMemo(() => {
+    const terms = normalizeTourSearch(tourSearch).trim().split(/\s+/).filter(Boolean);
+    return tourData.tours.filter((tour) => {
+      const name = normalizeTourSearch(tour.name);
+      return terms.every((term) => name.includes(term));
+    });
+  }, [tourData.tours, tourSearch]);
   const offsetRef = useRef(0);
   const isLoadingRef = useRef(false);
 
@@ -184,31 +208,47 @@ export default function HomePage() {
 
   useEffect(() => {
     let active = true;
+    let controller: AbortController | undefined;
     let loading = false;
     const loadTourData = async () => {
       if (!active || loading || document.visibilityState !== "visible") return;
       loading = true;
+      const requestController = new AbortController();
+      controller = requestController;
+      setTourDataLoading(true);
+      setTourDataError("");
       try {
-        const response = await fetch("/api/tour-data", { cache: "no-store" });
+        const response = await fetch("/api/tour-data", { cache: "no-store", signal: requestController.signal });
         const body = await response.json();
         if (!response.ok) throw new Error(body.error || "Tur verileri alınamadı.");
-        if (active) { setTourData(body); setTourDataError(""); }
+        if (!Array.isArray(body.tours) || !Array.isArray(body.purchases) ||
+            body.tours.some((tour: Tour) => !Array.isArray(tour.departures))) {
+          throw new Error("TurTakip tarih verileri geçerli biçimde alınamadı.");
+        }
+        if (active && !requestController.signal.aborted) {
+          setTourData(body);
+          setTourDataUpdatedAt(new Date());
+        }
       } catch (error) {
-        if (active) setTourDataError(error instanceof Error ? error.message : "Tur verileri alınamadı.");
+        if (active && !requestController.signal.aborted) setTourDataError(error instanceof Error ? error.message : "Tur verileri alınamadı.");
       } finally {
         loading = false;
+        if (active && !requestController.signal.aborted) setTourDataLoading(false);
       }
     };
-    const refreshTourData = () => { void loadTourData(); };
-    refreshTourData();
-    const intervalId = window.setInterval(refreshTourData, 60_000);
-    document.addEventListener("visibilitychange", refreshTourData);
+    void loadTourData();
+    const intervalId = window.setInterval(() => void loadTourData(), 60_000);
+    const refreshOnFocus = () => void loadTourData();
+    window.addEventListener("focus", refreshOnFocus);
+    document.addEventListener("visibilitychange", refreshOnFocus);
     return () => {
       active = false;
+      controller?.abort();
       window.clearInterval(intervalId);
-      document.removeEventListener("visibilitychange", refreshTourData);
+      window.removeEventListener("focus", refreshOnFocus);
+      document.removeEventListener("visibilitychange", refreshOnFocus);
     };
-  }, []);
+  }, [modalState?.lead?.id, modalState?.turname, tourDataRefresh]);
 
   const purchasesByPhone = useMemo(() => {
     const map = new Map<string, Purchase[]>();
@@ -309,7 +349,8 @@ export default function HomePage() {
     : "--:--";
 
   const openModal = (lead: Lead) => {
-    setModalState({ lead, notes: lead.notes, status: lead.status, turname: lead.turname || "" });
+    setTourSearch("");
+    setModalState({ lead, notes: lead.notes, status: lead.status, turname: lead.turname || "", departureDate: lead.departureDate || "" });
   };
 
   const closeModal = () => setModalState(null);
@@ -352,6 +393,7 @@ export default function HomePage() {
       status: modalState.status,
       notes: modalState.notes,
       turname: modalState.turname,
+      departureDate: modalState.departureDate || null,
       touched: true,
       statusUpdatedAt: statusChanged ? new Date().toISOString() : modalState.lead.statusUpdatedAt,
     };
@@ -532,6 +574,9 @@ export default function HomePage() {
                     <div className="lead-phone-container">
                       <p className="lead-phone-text">
                         {lead.turname ? `Tur: ${lead.turname}` : "Tur bilgisi yok"} • {lead.phone || "Telefon bilgisi yok"}
+                        {lead.departureDate && Number.isFinite(Date.parse(lead.departureDate)) ? (
+                          <span style={{ display: "block" }}>Tur tarihi: {shortDate(lead.departureDate)}</span>
+                        ) : null}
                       </p>
                       {lead.phone && (
                         <button 
@@ -639,13 +684,58 @@ export default function HomePage() {
               ))}
             </select>
 
-            <label htmlFor="tour-name">İlgilendiği tur</label>
-            <select id="tour-name" value={modalState.turname} onChange={(event) => setModalState((prev) => prev && { ...prev, turname: event.target.value })}>
+            <label htmlFor="tour-search">İlgilendiği tur — ara</label>
+            <input
+              id="tour-search"
+              type="search"
+              placeholder="Tur veya şehir adı yazın…"
+              value={tourSearch}
+              onChange={(event) => setTourSearch(event.target.value)}
+              aria-controls="tour-name"
+              aria-describedby="tour-search-result"
+              autoComplete="off"
+            />
+            <p id="tour-search-result" className="tour-data-help" role="status">
+              {filteredTours.length ? `${filteredTours.length} tur bulundu. Aşağıdaki listeden seçin.` : "Aramanıza uygun tur bulunamadı. Farklı bir kelime deneyin."}
+            </p>
+            <label htmlFor="tour-name">Tur seçin</label>
+            <select id="tour-name" value={modalState.turname} onChange={(event) => setModalState((prev) => prev && { ...prev, turname: event.target.value, departureDate: "" })}>
               <option value="">Tur seçilmedi</option>
-              {modalState.turname && !tourData.tours.some((tour) => tour.name === modalState.turname) ? <option value={modalState.turname}>{modalState.turname}</option> : null}
-              {tourData.tours.map((tour) => <option key={tour.id} value={tour.name}>{tour.name}{tour.departures[0] ? ` · ${shortDate(tour.departures[0].startDate)}` : ""}</option>)}
+              {modalState.turname && !filteredTours.some((tour) => tour.name === modalState.turname) ? <option value={modalState.turname}>{modalState.turname} (mevcut seçim)</option> : null}
+              {filteredTours.map((tour) => <option key={tour.id} value={tour.name}>{tour.name}</option>)}
             </select>
-            {tourDataError ? <p className="tour-data-error">{tourDataError}</p> : <p className="tour-data-help">{tourData.tours.length} güncel tur TurTakip'ten alındı.</p>}
+            <label htmlFor="tour-departure">Tur tarihi</label>
+            <select
+              id="tour-departure"
+              value={modalState.departureDate}
+              disabled={!modalState.turname || tourDataLoading || Boolean(tourDataError)}
+              onChange={(event) => setModalState((prev) => prev && { ...prev, departureDate: event.target.value })}
+            >
+              <option value="">{!modalState.turname ? "Önce tur seçin" : tourDataLoading ? "Tarihler TurTakip’ten alınıyor…" : "Tarih seçilmedi"}</option>
+              {modalState.departureDate && !selectedTourDates.includes(modalState.departureDate) ? (
+                <option value={modalState.departureDate}>
+                  {Number.isFinite(Date.parse(modalState.departureDate)) ? shortDate(modalState.departureDate) : modalState.departureDate} (kayıtlı tarih)
+                </option>
+              ) : null}
+              {selectedTourDates.map((date) => <option key={date} value={date}>{shortDate(date)}</option>)}
+            </select>
+            {modalState.turname && !tourDataLoading && !tourDataError ? (
+              <p className="tour-data-help" role="status">
+                {selectedTourDates.length === 0
+                  ? "TurTakip bu tur için güncel tarih döndürmedi."
+                  : `TurTakip’ten bu tur için ${selectedTourDates.length} güncel tarih alındı.`}
+              </p>
+            ) : null}
+            <button type="button" className="secondary" disabled={tourDataLoading}
+              onClick={() => setTourDataRefresh((value) => value + 1)}>
+              {tourDataLoading ? "TurTakip’ten güncelleniyor…" : "Tarihleri TurTakip’ten yenile"}
+            </button>
+            {tourDataError ? <p className="tour-data-error" role="alert">{tourDataError} Tarihler yenilenemedi; tekrar deneyin.</p> : (
+              <p className="tour-data-help">
+                {tourData.tours.length} tur
+                {tourDataUpdatedAt ? ` · Son güncelleme: ${tourDataUpdatedAt.toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}` : ""}
+              </p>
+            )}
 
             <label htmlFor="notes">Not</label>
             <textarea

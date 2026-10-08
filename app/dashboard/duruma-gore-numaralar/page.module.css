@@ -1,0 +1,93 @@
+.page {
+  max-width: 1800px;
+}
+
+.board {
+  overflow-x: auto;
+  padding-bottom: 16px;
+}
+
+.groups {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(250px, 1fr));
+  align-items: start;
+  gap: 16px;
+}
+
+.group {
+  min-width: 0;
+}
+
+.pagination {
+  border-bottom: 1px solid #e2e8f0;
+  padding-bottom: 14px;
+  font-size: 13px;
+}
+
+.pagination p {
+  margin: 0 0 10px;
+  color: #475569;
+}
+
+.pageButtons {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.pageButtons button {
+  padding: 8px;
+  font-size: 13px;
+}
+
+.heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.heading h2 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.count {
+  border-radius: 16px;
+  padding: 4px 8px;
+  background: #eef2ff;
+  color: #3730a3;
+  font-size: 13px;
+}
+
+.leads {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.leads li {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px 0;
+  border-bottom: 1px solid #e2e8f0;
+  overflow-wrap: anywhere;
+}
+
+.leads li:last-child {
+  border-bottom: 0;
+}
+
+.phone {
+  font-variant-numeric: tabular-nums;
+}
+
+.detail {
+  color: #475569;
+  font-size: 13px;
+}

@@ -5,6 +5,7 @@ type Lead = {
   id: string;
   name: string;
   turname: string;
+  departureDate?: string | null;
   phone: string;
   status: string;
   salesPerson: string;
@@ -91,6 +92,7 @@ async function getAllLeads(params?: {
        id,
        name,
        turname,
+       departure_date AS "departureDate",
        phone,
        status,
        sales_person AS "salesPerson",
@@ -164,6 +166,7 @@ export async function POST(request: NextRequest) {
            ON CONFLICT (id) DO UPDATE SET
              name = EXCLUDED.name,
              turname = EXCLUDED.turname,
+             departure_date = CASE WHEN leads.turname IS NOT DISTINCT FROM EXCLUDED.turname THEN leads.departure_date ELSE NULL END,
              phone = EXCLUDED.phone,
              status = EXCLUDED.status,
              sales_person = EXCLUDED.sales_person,
@@ -196,11 +199,16 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: "Lead id is required" }, { status: 400 });
     }
 
+    if (lead.departureDate != null && lead.departureDate !== "" &&
+        (typeof lead.departureDate !== "string" || !Number.isFinite(Date.parse(lead.departureDate)))) {
+      return NextResponse.json({ error: "Geçerli bir tur tarihi seçin." }, { status: 400 });
+    }
+
     await ensureLeadsTable();
     const status = normalizeLeadStatus(lead.status);
     const result = await db.query(
-      `INSERT INTO leads (id, name, turname, phone, status, sales_person, notes, touched, status_updated_at)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW())
+      `INSERT INTO leads (id, name, turname, phone, status, sales_person, notes, touched, status_updated_at, departure_date)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), $9)
            ON CONFLICT (id) DO UPDATE SET
              name = EXCLUDED.name,
              turname = EXCLUDED.turname,
@@ -209,6 +217,11 @@ export async function PATCH(request: NextRequest) {
              sales_person = EXCLUDED.sales_person,
              notes = EXCLUDED.notes,
              touched = EXCLUDED.touched,
+             departure_date = CASE
+               WHEN $10 THEN EXCLUDED.departure_date
+               WHEN leads.turname IS DISTINCT FROM EXCLUDED.turname THEN NULL
+               ELSE leads.departure_date
+             END,
              status_updated_at = CASE
                WHEN leads.status IS DISTINCT FROM EXCLUDED.status THEN NOW()
                ELSE leads.status_updated_at
@@ -217,6 +230,7 @@ export async function PATCH(request: NextRequest) {
              id,
              name,
              turname,
+             departure_date AS "departureDate",
              phone,
              status,
              sales_person AS "salesPerson",
@@ -224,7 +238,8 @@ export async function PATCH(request: NextRequest) {
              touched,
              created_at AS "createdAt",
              status_updated_at AS "statusUpdatedAt"`,
-      [lead.id, lead.name, lead.turname, lead.phone, status, lead.salesPerson, lead.notes, lead.touched ?? true]
+      [lead.id, lead.name, lead.turname, lead.phone, status, lead.salesPerson, lead.notes, lead.touched ?? true,
+        lead.turname ? lead.departureDate || null : null, Object.prototype.hasOwnProperty.call(lead, "departureDate")]
     );
 
     return NextResponse.json({ lead: result.rows[0] });

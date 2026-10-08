@@ -4,6 +4,7 @@ export type Lead = {
   id: string;
   name: string;
   turname: string;
+  departureDate?: string | null;
   phone: string;
   status: LeadStatus;
   salesPerson: string;
