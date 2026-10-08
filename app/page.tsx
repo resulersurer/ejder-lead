@@ -184,7 +184,10 @@ export default function HomePage() {
 
   useEffect(() => {
     let active = true;
+    let loading = false;
     const loadTourData = async () => {
+      if (!active || loading || document.visibilityState !== "visible") return;
+      loading = true;
       try {
         const response = await fetch("/api/tour-data", { cache: "no-store" });
         const body = await response.json();
@@ -192,11 +195,19 @@ export default function HomePage() {
         if (active) { setTourData(body); setTourDataError(""); }
       } catch (error) {
         if (active) setTourDataError(error instanceof Error ? error.message : "Tur verileri alınamadı.");
+      } finally {
+        loading = false;
       }
     };
-    void loadTourData();
-    const intervalId = window.setInterval(() => void loadTourData(), 60_000);
-    return () => { active = false; window.clearInterval(intervalId); };
+    const refreshTourData = () => { void loadTourData(); };
+    refreshTourData();
+    const intervalId = window.setInterval(refreshTourData, 60_000);
+    document.addEventListener("visibilitychange", refreshTourData);
+    return () => {
+      active = false;
+      window.clearInterval(intervalId);
+      document.removeEventListener("visibilitychange", refreshTourData);
+    };
   }, []);
 
   const purchasesByPhone = useMemo(() => {
